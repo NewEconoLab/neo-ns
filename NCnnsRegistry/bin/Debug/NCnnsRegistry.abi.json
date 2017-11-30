@@ -1,0 +1,29 @@
+{
+    "hash":"0xc191b3e4030b9105e59c6bb56ec0d1273cd43284",
+    "entrypoint":"Main",
+    "functions":
+    [
+        {
+            "name":"Main",
+            "returntype":"ByteArray",
+            "paramaters":
+            [
+                {
+                    "name":"signature",
+                    "type":"ByteArray"
+                },
+                {
+                    "name":"operation",
+                    "type":"String"
+                },
+                {
+                    "name":"args",
+                    "type":"Array"
+                }
+            ]
+        }
+    ],
+    "events":
+    [
+    ]
+}
