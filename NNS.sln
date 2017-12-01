@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoContractTest1", "NeoCont
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsRegistry", "NCnnsRegistry\NCnnsRegistry.csproj", "{AB9BAFB0-7F9B-46BB-96A0-9253C0D22B68}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsResolvers", "NCnnsResolvers\NCnnsResolvers.csproj", "{01E901CA-2C59-4531-9E0B-581934201FED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{AB9BAFB0-7F9B-46BB-96A0-9253C0D22B68}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB9BAFB0-7F9B-46BB-96A0-9253C0D22B68}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB9BAFB0-7F9B-46BB-96A0-9253C0D22B68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01E901CA-2C59-4531-9E0B-581934201FED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01E901CA-2C59-4531-9E0B-581934201FED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01E901CA-2C59-4531-9E0B-581934201FED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01E901CA-2C59-4531-9E0B-581934201FED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
