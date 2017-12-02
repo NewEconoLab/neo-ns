@@ -9,7 +9,7 @@ namespace NCnnsResolvers
 
     public class nnsResolvers : SmartContract
     {
-        //以32位byte[]代表空地址
+        //以34位byte[]代表空地址
         private static byte[] GetZeroByte34()
         {
             byte[] zeroByte34 = new byte[34];
@@ -94,11 +94,37 @@ namespace NCnnsResolvers
 
                 //如果已有地址就先删除
                 byte[] oldAddr = Storage.Get(Storage.CurrentContext, namehash);
-                if (oldAddr != null) { Storage.Delete(Storage.CurrentContext, namehash); }
+                if (oldAddr != null) {
+                    Storage.Delete(Storage.CurrentContext, namehash);
+                }
 
                 //记录nns和地址映射
                 Storage.Put(Storage.CurrentContext, namehash, addr);
                 return GetTrueByte();
+            }
+            else
+            {
+                return GetFalseByte();
+            }
+        }
+
+        private static byte[] Delete(string domain, string name, string subname, string addr)
+        {
+            if (CheckNnsOwner(domain, name, subname) == new byte[] { 1 })
+            {
+                byte[] namehash = NameHash(domain, name, subname);
+
+                //如果已有地址就先删除
+                byte[] oldAddr = Storage.Get(Storage.CurrentContext, namehash);
+
+                if (oldAddr != null){
+                    Storage.Delete(Storage.CurrentContext, namehash);
+                    return GetTrueByte();
+                }
+                else
+                {
+                    return GetFalseByte();
+                }
             }
             else
             {
