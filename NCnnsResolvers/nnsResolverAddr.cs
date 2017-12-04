@@ -19,32 +19,37 @@ namespace NCnnsResolverAddr
     //TXID:0x8615e23ea07f4d029ed34fa58bf6ac1cdd3642bc909cf0087d2057f47d7d3abf
     //scripthash:0x7244f292382c4db2fcc391cc565d51806dcdcdc8
 
+    //v0.0.2
+    //加强通知辨识
+    //TXID:0x3418250eab0938e90322787acafecdc3a2fb9674501df29ec7e28f72f0a46827
+    //scripthash:0x171ca20b36c73cb20b10d2804286eb82f6b93069
+
     public class nnsResolverAddr : SmartContract
     {
         string miagic = "qingmingzi";//魔法代码
 
         //以34位byte[]代表空地址
-        private static byte[] GetZeroByte34()
+        private static byte[] GetZeroByte34(string label)
         {
             byte[] zeroByte34 = new byte[34];
 
-            Runtime.Notify(new object[] { "return", zeroByte34 });
+            Runtime.Notify(new object[] { label, zeroByte34 });
             return zeroByte34;
         }
 
-        private static byte[] GetFalseByte()
+        private static byte[] GetFalseByte(string label)
         {
             byte[] falseByte = new byte[] { 0 };
 
-            Runtime.Notify(new object[] { "return", falseByte });
+            Runtime.Notify(new object[] { label, falseByte });
             return falseByte;
         }
 
-        private static byte[] GetTrueByte()
+        private static byte[] GetTrueByte(string label)
         {
             byte[] trueByte = new byte[] { 1 };
 
-            Runtime.Notify(new object[] { "return", trueByte });
+            Runtime.Notify(new object[] { label, trueByte });
             return trueByte;
         }
 
@@ -56,12 +61,12 @@ namespace NCnnsResolverAddr
                     return NameHash((string)args[0], (string)args[1], (string)args[2]);
                 case "query"://string domain, string name, string subname
                     return Query((string)args[0], (string)args[1], (string)args[2]);
-                case "alter"://string domain, string name, string subname, byte[] publickey
+                case "alter"://string domain, string name, string subname, string addr
                     return Altert((string)args[0], (string)args[1], (string)args[2], (string)args[3]);
-                case "delete"://string domain, string name, string subname, byte[] publickey
+                case "delete"://string domain, string name, string subname
                     return Delete((string)args[0], (string)args[1], (string)args[2]);
                 default:
-                    return GetFalseByte();
+                    return GetFalseByte("main方法");
             }
         }
 
@@ -72,7 +77,7 @@ namespace NCnnsResolverAddr
         {
             byte[] namehash = NnsRegistry(new byte[32], "namehash", new object[]{ domain, name, subname });
 
-            Runtime.Notify(new object[] { "namehash", namehash });
+            Runtime.Notify(new object[] { "取到namehash", namehash });
             return namehash;
         }
 
@@ -80,20 +85,21 @@ namespace NCnnsResolverAddr
         private static byte[] CheckNnsOwner(string domain, string name, string subname)
         {
             byte[] owner = NnsRegistry(new byte[32], "query", new object[] { domain, name, subname });
+            Runtime.Notify(new object[] { "取到owner", owner });
 
             if (Runtime.CheckWitness(owner))
             {
-                return GetTrueByte();
+                return GetTrueByte("CheckWitness验证");
             }
             else{
-                return GetFalseByte();
+                return GetFalseByte("CheckWitness验证");
             }
         }
 
         private static byte[] Query(string domain, string name, string subname)
         {
             byte[] addr = Storage.Get(Storage.CurrentContext, NameHash(domain, name, subname));
-            if (addr == null) { return GetZeroByte34(); }
+            if (addr == null) { return GetZeroByte34("query查询"); }
 
             Runtime.Notify(new object[] { "addr", addr });
             return addr;
@@ -114,11 +120,11 @@ namespace NCnnsResolverAddr
 
                 //记录nns和地址映射
                 Storage.Put(Storage.CurrentContext, namehash, addr);
-                return GetTrueByte();
+                return GetTrueByte("altert修改");
             }
             else
             {
-                return GetFalseByte();
+                return GetFalseByte("altert修改");
             }
         }
 
@@ -132,16 +138,16 @@ namespace NCnnsResolverAddr
 
                 if (oldAddr != null){
                     Storage.Delete(Storage.CurrentContext, namehash);
-                    return GetTrueByte();
+                    return GetTrueByte("delete删除地址是否空");
                 }
                 else
                 {
-                    return GetFalseByte();
+                    return GetFalseByte("delete删除地址是否空");
                 }
             }
             else
             {
-                return GetFalseByte();
+                return GetFalseByte("delete删除鉴权");
             }
         }
     }
