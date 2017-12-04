@@ -138,11 +138,11 @@ namespace NCnnsResolverAddr
 
                 if (oldAddr != null){
                     Storage.Delete(Storage.CurrentContext, namehash);
-                    return GetTrueByte("delete删除地址是否空");
+                    return GetTrueByte("delete删除地址");
                 }
                 else
                 {
-                    return GetFalseByte("delete删除地址是否空");
+                    return GetFalseByte("delete删除地址");
                 }
             }
             else
