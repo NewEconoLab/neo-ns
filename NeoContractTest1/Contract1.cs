@@ -16,11 +16,25 @@ namespace NeoContractTest1
         //    return new byte[] { 1 };
         //}
 
-        public static byte[] Main()
+        private static bool Main(string domain, string name, string subname)
         {
-            byte[] trueByte = new byte[] { 1,2,3 };
+            byte[] namehash = Hash256(domain.AsByteArray().Concat(name.AsByteArray()).Concat(subname.AsByteArray()));
 
-            return trueByte;
+            var owner = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
+            byte[] zeroByte32 = new byte[32];
+            //bool isZero = a == zeroByte32;
+            if (owner == zeroByte32)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+                
+
+            //Runtime.Notify(new object[] { "namehash", namehash });
+            //return a!=b;
         }
 
         ////VerifySignatureTest
