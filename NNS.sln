@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoContractTest1", "NeoCont
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsRegistry", "NCnnsRegistry\NCnnsRegistry.csproj", "{AB9BAFB0-7F9B-46BB-96A0-9253C0D22B68}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsResolvers", "NCnnsResolvers\NCnnsResolvers.csproj", "{01E901CA-2C59-4531-9E0B-581934201FED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsResolverAddr", "NCnnsResolvers\NCnnsResolverAddr.csproj", "{01E901CA-2C59-4531-9E0B-581934201FED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

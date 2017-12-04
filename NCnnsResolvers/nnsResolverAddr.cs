@@ -3,12 +3,26 @@ using Neo.SmartContract.Framework.Services.Neo;
 using System;
 using System.Numerics;
 
-namespace NCnnsResolvers
+namespace NCnnsResolverAddr
 {
     //nns解析器（地址型）
 
-    public class nnsResolvers : SmartContract
+    //nnsResolver(addr)
+    //qingmingzi
+    //matrix3345@hotmail.com
+    //NEO Name Service Resolver(address)
+    //0710
+    //05
+
+    //部署
+    //v0.0.1
+    //TXID:0x8615e23ea07f4d029ed34fa58bf6ac1cdd3642bc909cf0087d2057f47d7d3abf
+    //scripthash:0x7244f292382c4db2fcc391cc565d51806dcdcdc8
+
+    public class nnsResolverAddr : SmartContract
     {
+        string miagic = "qingmingzi";//魔法代码
+
         //以34位byte[]代表空地址
         private static byte[] GetZeroByte34()
         {
@@ -45,7 +59,7 @@ namespace NCnnsResolvers
                 case "alter"://string domain, string name, string subname, byte[] publickey
                     return Altert((string)args[0], (string)args[1], (string)args[2], (string)args[3]);
                 case "delete"://string domain, string name, string subname, byte[] publickey
-                    return Delete((string)args[0], (string)args[1], (string)args[2], (string)args[3]);
+                    return Delete((string)args[0], (string)args[1], (string)args[2]);
                 default:
                     return GetFalseByte();
             }
@@ -108,13 +122,12 @@ namespace NCnnsResolvers
             }
         }
 
-        private static byte[] Delete(string domain, string name, string subname, string addr)
+        private static byte[] Delete(string domain, string name, string subname)
         {
             if (CheckNnsOwner(domain, name, subname) == new byte[] { 1 })
             {
                 byte[] namehash = NameHash(domain, name, subname);
 
-                //如果已有地址就先删除
                 byte[] oldAddr = Storage.Get(Storage.CurrentContext, namehash);
 
                 if (oldAddr != null){
