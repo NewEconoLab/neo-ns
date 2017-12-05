@@ -44,6 +44,16 @@ namespace NCnnsResolverAddr
     //TXID:0x21f0d5c313eca2d8c2298f92f498d1dc1b8183ba78fa671b695af832c267f491
     //scripthash:0xf50b58d64e67f3cf4eb01041f919961947bafd56
 
+    //v0.0.7
+    //放弃自动删除，可以实现定义映射地址
+    //TXID:0x5b3000c7f8b569f8f463a74b92aa86a5e01efc3ac7676027b61a0979de410412
+    //scripthash:0xd8a79978453784c4f40ff3b0599b9d6584fecd28
+
+    //v0.0.8
+    //解决所有权人无法维护解析的问题
+    //TXID:0xdf3163d928d2893e4e45f13d0ac4cb3a4723f8998eea56f0c46ae4e0443f40d9
+    //scripthash:0x706c89208c5b6016a054a58cc83aeda0d70f0f95
+
     public class nnsResolverAddr : SmartContract
     {
         string miagic = "qingmingzi";//魔法代码
@@ -137,14 +147,14 @@ namespace NCnnsResolverAddr
 
         private static byte[] Altert(string domain, string name, string subname, string addr)
         {
-            bool b = CheckNnsOwner(domain, name, subname);
-            if (b == true)
+            if (CheckNnsOwner(domain, name, subname))
             {
                 byte[] namehash = NameHash(domain, name, subname);
 
                 //如果已有地址就先删除
                 byte[] oldAddr = Storage.Get(Storage.CurrentContext, namehash);
-                if (oldAddr != null){
+                if (oldAddr.Length>0)
+                {
                     Storage.Delete(Storage.CurrentContext, namehash);
                 }
 
@@ -160,14 +170,13 @@ namespace NCnnsResolverAddr
 
         private static byte[] Delete(string domain, string name, string subname)
         {
-            bool b = CheckNnsOwner(domain, name, subname);
-            if (b == true)
+            if (CheckNnsOwner(domain, name, subname))
             {
                 byte[] namehash = NameHash(domain, name, subname);
 
                 byte[] oldAddr = Storage.Get(Storage.CurrentContext, namehash);
 
-                if (oldAddr != null){
+                if (oldAddr.Length>0){
                     Storage.Delete(Storage.CurrentContext, namehash);
                     return GetTrueByte("delete删除地址");
                 }
