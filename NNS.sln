@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsRegistry", "NCnnsRegis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NCnnsResolverAddr", "NCnnsResolvers\NCnnsResolverAddr.csproj", "{01E901CA-2C59-4531-9E0B-581934201FED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domaincenter", "dapp_nns_domaincenter\dapp_nns_domaincenter.csproj", "{22DEEC98-DEE0-435C-B919-AB69B607026F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{01E901CA-2C59-4531-9E0B-581934201FED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{01E901CA-2C59-4531-9E0B-581934201FED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{01E901CA-2C59-4531-9E0B-581934201FED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22DEEC98-DEE0-435C-B919-AB69B607026F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22DEEC98-DEE0-435C-B919-AB69B607026F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22DEEC98-DEE0-435C-B919-AB69B607026F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22DEEC98-DEE0-435C-B919-AB69B607026F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

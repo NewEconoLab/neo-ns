@@ -1,0 +1,10 @@
+/.vs
+/dapp_nns_domaincenter/bin
+/dapp_nns_domaincenter/obj
+/NCnnsRegistry/bin
+/NCnnsRegistry/obj
+/NCnnsResolvers/obj
+/NCnnsResolvers/bin
+/NeoContractTest1/obj
+/NeoContractTest1/bin
+/packages

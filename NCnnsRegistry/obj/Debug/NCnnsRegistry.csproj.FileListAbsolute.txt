@@ -1,6 +1,0 @@
-D:\我的坚果云\代码库\nns\NCnnsRegistry\bin\Debug\NCnnsRegistry.dll
-D:\我的坚果云\代码库\nns\NCnnsRegistry\bin\Debug\NCnnsRegistry.pdb
-D:\我的坚果云\代码库\nns\NCnnsRegistry\bin\Debug\Neo.SmartContract.Framework.dll
-D:\我的坚果云\代码库\nns\NCnnsRegistry\obj\Debug\NCnnsRegistry.csproj.CoreCompileInputs.cache
-D:\我的坚果云\代码库\nns\NCnnsRegistry\obj\Debug\NCnnsRegistry.dll
-D:\我的坚果云\代码库\nns\NCnnsRegistry\obj\Debug\NCnnsRegistry.pdb
