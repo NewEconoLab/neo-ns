@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace DApp
 {
-    public class nns_domaincenter : SmartContract
+    public class nns_reslover : SmartContract
     {
         //域名中心 
         //    域名中心是一个不会改变地址的合约，他的作用是管理某一个域名的数据

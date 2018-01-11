@@ -157,26 +157,39 @@ namespace DApp
                 Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
                 return new byte[] { 0x01 };
             }
-            if (Runtime.CheckWitness(owner) == true && o.AsBigInteger() == owner.AsBigInteger())//账户所有者
+            Runtime.Log("p0");
+            if (Runtime.CheckWitness(owner))//账户所有者
             {
-                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
-                return new byte[] { 0x01 };
+                Runtime.Log("p1");
+                if (o.AsBigInteger() == owner.AsBigInteger())
+                {
+                    Runtime.Log("p2");
+                    Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
+                    return new byte[] { 0x01 };
+                }
+                Runtime.Log("p3");
+                return new byte[] { 0x00 };
             }
             return new byte[] { 0x00 };
         }
         //所有者设置注册器
-        static byte[] owner_SetRegister(byte[] owner, byte[] nnshash, byte[] controller)
+        static byte[] owner_SetRegister(byte[] owner, byte[] nnshash, byte[] register)
         {
             var callhash = Neo.SmartContract.Framework.Services.System.ExecutionEngine.CallingScriptHash;
             var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
-            if (
-                callhash.AsBigInteger() == o.AsBigInteger()//智能合約所有者
-                ||
-                (Runtime.CheckWitness(owner) && o.AsBigInteger() == owner.AsBigInteger())//個人所有者
-                )
+            if (callhash.AsBigInteger() == o.AsBigInteger())//智能合約所有者
             {
-                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), controller);
+                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), register);
                 return new byte[] { 0x01 };
+            }
+            if (Runtime.CheckWitness(owner))//账户所有者
+            {
+                if (o.AsBigInteger() == owner.AsBigInteger())
+                {
+                    Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), register);
+                    return new byte[] { 0x01 };
+                }
+                return new byte[] { 0x00 };
             }
             return new byte[] { 0x00 };
         }
