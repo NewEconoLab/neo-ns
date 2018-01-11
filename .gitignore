@@ -8,3 +8,7 @@
 /NeoContractTest1/obj
 /NeoContractTest1/bin
 /packages
+/dapp_nns_register_fifo/bin
+/dapp_nns_register_fifo/obj
+/dapp_nns_resolver/bin
+/dapp_nns_resolver/obj
