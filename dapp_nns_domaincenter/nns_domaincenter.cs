@@ -228,6 +228,7 @@ namespace DApp
                 return new byte[] { 0x00 };
             }
             var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
+            //yong CallingScriptHash 結果得到的是自己，還是反序
             if (Helper.AsBigInteger(register) == Helper.AsBigInteger(ExecutionEngine.CallingScriptHash))
             {
                 //衹有控制器允許改

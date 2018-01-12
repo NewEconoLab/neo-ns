@@ -16,10 +16,12 @@ namespace DApp
 
         const int blockday = 4096;//粗略一天的块数
         const int domaindays = 1;//租一次给几天
-        static readonly byte[] rootContract = Helper.HexToBytes("0xf389ee8159f109c9579bb950fa0a4da5b1b26b70");
+
+        [Appcall("bf67d51518852e715fd7849504bb07a934e0b98f")]
+        static extern object rootCall(string method, object[] arr);
+
         static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 
-        delegate object deleDyncall(string method, object[] arr);
 
 
         #region 域名转hash算法
@@ -63,9 +65,8 @@ namespace DApp
             }
             return new byte[] { 0x00 };
         }
-        static byte[] setSubOwner(byte[] nnshash, byte[] subhash,byte[] owner,BigInteger ttl)
+        static byte[] setSubOwner(byte[] nnshash, byte[] subhash, byte[] owner, BigInteger ttl)
         {
-            deleDyncall rootCall = (deleDyncall)rootContract.ToDelegate();
             object[] obj = new object[4];
             obj[0] = nnshash;
             obj[1] = subhash;
@@ -95,7 +96,6 @@ namespace DApp
             }
             //var subhash = nameHashSub(nnshash, subdomain);
             var owner = Storage.Get(Storage.CurrentContext, subhash);
-            deleDyncall rootCall = (deleDyncall)rootContract.ToDelegate();
             var ttl = Blockchain.GetHeight(); ;
             if (owner.Length == 0)//无人认领，直接分配
             {
@@ -110,7 +110,7 @@ namespace DApp
                 if (ttltarget < ttl)//过期域名
                 {
                     ttl += blockday * domaindays;
-                    return setSubOwner(nnshash, subdomain, who, ttl);
+                    return setSubOwner(nnshash, subhash, who, ttl);
                 }
             }
             return new byte[] { 0x00 };
@@ -119,6 +119,12 @@ namespace DApp
 
         public static object Main(string method, object[] args)
         {
+            //随便调用
+            if (method == "getSubOwner")
+                return getSubOwner(args[0] as byte[], args[1] as byte[]);
+            //请求者调用
+            if (method == "requestSubDomain")
+                return requestSubDomain(args[0] as byte[], args[1] as byte[], args[2] as byte[]);
             return new byte[] { 0 };
         }
     }
