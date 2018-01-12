@@ -215,7 +215,7 @@ namespace DApp
         /// 注册器功能组
         /// </summary>
         //更改子域名所有者
-        static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
+        static byte[] register_SetSubdomainOwner(byte[] nnshash, byte[] subhash, byte[] owner, BigInteger ttl)
         {
 
             var ttlself = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
@@ -231,9 +231,9 @@ namespace DApp
             if (Helper.AsBigInteger(register) == Helper.AsBigInteger(ExecutionEngine.CallingScriptHash))
             {
                 //衹有控制器允許改
-                byte[] namehashsub = nameHashSub(nnshash, subdomain);
-                Storage.Put(Storage.CurrentContext, namehashsub.Concat(new byte[] { 0x00 }), owner);
-                Storage.Put(Storage.CurrentContext, namehashsub.Concat(new byte[] { 0x03 }), ttl);
+                //byte[] namehashsub = nameHashSub(nnshash, subdomain);
+                Storage.Put(Storage.CurrentContext, subhash.Concat(new byte[] { 0x00 }), owner);
+                Storage.Put(Storage.CurrentContext, subhash.Concat(new byte[] { 0x03 }), ttl);
                 return new byte[] { 0x01 };
             }
             return new byte[] { 0x00 };
@@ -248,7 +248,11 @@ namespace DApp
         }
         static byte[] nameHashSub(byte[] roothash, string subdomain)
         {
-            var domain = SmartContract.Sha256(subdomain.AsByteArray()).Concat(roothash);
+            var bs = subdomain.AsByteArray();
+            if (bs.Length == 0)
+                return roothash;
+
+            var domain = SmartContract.Sha256(bs).Concat(roothash);
             return SmartContract.Sha256(domain);
         }
         static byte[] nameHashArray(string[] domainarray)
@@ -294,7 +298,7 @@ namespace DApp
             #endregion
             #region 注册器接口 仅智能合约
             if (method == "register_SetSubdomainOwner")
-                return register_SetSubdomainOwner(args[0] as byte[], args[1] as string, args[2] as byte[], (args[3] as byte[]).AsBigInteger());
+                return register_SetSubdomainOwner(args[0] as byte[], args[1] as byte[], args[2] as byte[], (args[3] as byte[]).AsBigInteger());
             #endregion
             return new byte[] { 0 };
         }
