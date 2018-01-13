@@ -24,7 +24,7 @@ namespace DApp
 
         const string rootDomain = "test";
         static readonly byte[] initSuperAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.HexToBytes("00112233");
+        static readonly byte[] jumpContract = Helper.HexToBytes("4b23b973cf61eafcfa0f679c87f17c564d27226d");
         public static byte[] rootNameHash()
         {
             return nameHash(rootDomain);
