@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_register_fifo", "d
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_reslover", "dapp_nns_resolver\dapp_nns_reslover.csproj", "{140643D9-6C60-4490-9C67-DA011AEA310B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domaincenter_jump", "dapp_nns_domaincenter_jump\dapp_nns_domaincenter_jump.csproj", "{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,10 @@ Global
 		{140643D9-6C60-4490-9C67-DA011AEA310B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{140643D9-6C60-4490-9C67-DA011AEA310B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{140643D9-6C60-4490-9C67-DA011AEA310B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

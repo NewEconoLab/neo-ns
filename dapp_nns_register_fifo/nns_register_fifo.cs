@@ -17,7 +17,7 @@ namespace DApp
         const int blockday = 4096;//粗略一天的块数
         const int domaindays = 1;//租一次给几天
 
-        [Appcall("bf67d51518852e715fd7849504bb07a934e0b98f")]
+        [Appcall("4b23b973cf61eafcfa0f679c87f17c564d27226d")]
         static extern object rootCall(string method, object[] arr);
 
         static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
@@ -121,10 +121,10 @@ namespace DApp
         {
             //随便调用
             if (method == "getSubOwner")
-                return getSubOwner(args[0] as byte[], args[1] as byte[]);
+                return getSubOwner((byte[])args[0], (byte[])args[1]);
             //请求者调用
             if (method == "requestSubDomain")
-                return requestSubDomain(args[0] as byte[], args[1] as byte[], args[2] as byte[]);
+                return requestSubDomain((byte[])args[0], (byte[])args[1], (byte[])args[2]);
             return new byte[] { 0 };
         }
     }
