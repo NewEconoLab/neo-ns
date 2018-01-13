@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "old", "old", "{920C393E-246
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_register_fifo", "dapp_nns_register_fifo\dapp_nns_register_fifo.csproj", "{C87845C5-2589-4576-99C7-372D2BE51BBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_reslover", "dapp_nns_resolver\dapp_nns_reslover.csproj", "{140643D9-6C60-4490-9C67-DA011AEA310B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_resolver", "dapp_nns_resolver\dapp_nns_resolver.csproj", "{140643D9-6C60-4490-9C67-DA011AEA310B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domaincenter_jump", "dapp_nns_domaincenter_jump\dapp_nns_domaincenter_jump.csproj", "{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3}"
 EndProject

@@ -24,7 +24,8 @@ namespace DApp
 
         const string rootDomain = "test";
         static readonly byte[] initSuperAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.HexToBytes("4b23b973cf61eafcfa0f679c87f17c564d27226d");
+        static readonly byte[] jumpContract = Helper.HexToBytes("62134ef8f4aadfa9cb5cba564cdd414a53ddfbdf");//注意 script_hash 是反序的
+        //跳板合约为0xdffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362
         public static byte[] rootNameHash()
         {
             return nameHash(rootDomain);
@@ -62,14 +63,14 @@ namespace DApp
             for (var i = 1; i < domainarray.Length - 1; i++)
             {
                 byte[] register = Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x01 }));
+                byte[] resolver = Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x02 }));
                 if (register.Length == 0)
                 {
                     return new byte[] { 0x00 };
                 }
-                var regcall = (deleDyncall)register.ToDelegate();
-
                 var subhash = nameHashSub(hash, domainarray[i]);
 
+                var regcall = (deleDyncall)register.ToDelegate();
                 byte[] data = (byte[])regcall("getSubOwner", new object[] { hash, subhash });
                 if (data.Length == 0)//没有子域名，断链
                 {
@@ -87,54 +88,42 @@ namespace DApp
             return resolve(protocol, hash, lastname);
         }
         //一般解析
+        static byte[] _doresolve(byte[] resolver, byte[] ttlhash, string protocol, byte[] nnshash)
+        {
+            if (resolver.Length == 0)
+            {
+                return new byte[] { 0x00 };
+            }
+            var ttl = Storage.Get(Storage.CurrentContext, ttlhash.Concat(new byte[] { 0x03 })).AsBigInteger();
+            if (ttl < Blockchain.GetHeight())
+            {
+                return new byte[] { 0x00 };
+            }
+            var resolveCall = (deleDyncall)resolver.ToDelegate();
+            return resolveCall("resolve", new object[] { protocol, nnshash });//解析
+        }
         static byte[] resolve(string protocol, byte[] nnshash, string subdomain)
         {
             //先查完整hash是否对应解析器
             var fullhash = nameHashSub(nnshash, subdomain);
-
-            var resolver = Storage.Get(Storage.CurrentContext, fullhash.Concat(new byte[] { 0x02 }));
-            if (resolver.Length != 0)
+            if (fullhash.AsBigInteger() == nnshash.AsBigInteger())//是一个根查询
             {
-                var ttl = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
-                if (ttl < Blockchain.GetHeight())
-                {
-                    return new byte[] { 0x00 };
-                }
-                //还是要确认一下这个玩意是不是合法的
-                byte[] register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-                if (register.Length == 0)
-                {
-                    return new byte[] { 0x00 };
-                }
-                var regcall = (deleDyncall)register.ToDelegate();
+                var resolverFull = Storage.Get(Storage.CurrentContext, fullhash.Concat(new byte[] { 0x02 }));
+                return _doresolve(resolverFull, nnshash, protocol, nnshash);
+            }
 
-                var subhash = nameHashSub(nnshash, subdomain);
-                byte[] data = (byte[])regcall("getSubOwner", new object[] { nnshash, subhash });
-                if (data.Length == 0)//没有子域名，断链
-                {
-                    return new byte[] { 0x00 };
-                }
-
-                var resolveCall = (deleDyncall)resolver.ToDelegate();
-                return resolveCall("resolve", new object[] { protocol, fullhash });//解析
+            var resolverSub = Storage.Get(Storage.CurrentContext, fullhash.Concat(new byte[] { 0x02 }));
+            if (resolverSub.Length != 0)//如果他有一个子解析器,调用子解析器
+            {
+                return _doresolve(resolverSub, fullhash, protocol, fullhash);
             }
 
             //然后查根域名是否对应解析器
-            resolver = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }));
-            if (resolver.Length != 0)
-            {
-                var ttl = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
-                if (ttl < Blockchain.GetHeight())
-                {
-                    return new byte[] { 0x00 };
-                }
-                var resolveCall = (deleDyncall)resolver.ToDelegate();
-                return resolveCall("resolve", new object[] { protocol, nnshash });//解析
-            }
-            return new byte[] { 0x00 };
+            var resolver = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }));
+            return _doresolve(resolver, nnshash, protocol, fullhash);
         }
         //快速解析
-        static byte[] Init(byte[] newowner)
+        static byte[] init(byte[] newowner)
         {
             var callhash = ExecutionEngine.CallingScriptHash;
             var nnshash = rootNameHash();
@@ -313,7 +302,7 @@ namespace DApp
             {
                 if (Runtime.CheckWitness(initSuperAdmin))
                 {
-                    return Init((byte[])args[0]);
+                    return init((byte[])args[0]);
                 }
                 return new byte[] { 0x00 };
             }
