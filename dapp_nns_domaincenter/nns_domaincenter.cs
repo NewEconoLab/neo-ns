@@ -68,11 +68,17 @@ namespace DApp
                 {
                     return new byte[] { 0x00 };
                 }
+                var subname = domainarray[i];
                 var subhash = nameHashSub(hash, domainarray[i]);
 
                 var regcall = (deleDyncall)register.ToDelegate();
-                byte[] data = (byte[])regcall("getSubOwner", new object[] { hash, subhash });
-                if (data.Length == 0)//没有子域名，断链
+                byte[] regowner = (byte[])regcall("getSubOwner", new object[] { hash, subname });
+                byte[] owner = Storage.Get(Storage.CurrentContext, subhash.Concat(new byte[] { 0x00 }));
+                if (regowner.Length == 0)//没有所有者，断链
+                {
+                    return new byte[] { 0x00 };
+                }
+                if (regowner.AsBigInteger() != owner.AsBigInteger())//所有者对不上，断链
                 {
                     return new byte[] { 0x00 };
                 }
@@ -163,7 +169,7 @@ namespace DApp
         //更改子域名所有者
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
         {
-            if(subdomain.AsByteArray().Length==0)
+            if (subdomain.AsByteArray().Length == 0)
             {
                 return new byte[] { 0x00 };
             }
@@ -198,7 +204,7 @@ namespace DApp
             var domain = SmartContract.Sha256(bs).Concat(roothash);
             return SmartContract.Sha256(domain);
         }
-        static byte[] nameHashWithSubHash(byte[] roothash,byte[] subhash)
+        static byte[] nameHashWithSubHash(byte[] roothash, byte[] subhash)
         {
             var domain = subhash.Concat(roothash);
             return SmartContract.Sha256(domain);

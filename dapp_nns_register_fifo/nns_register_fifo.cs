@@ -52,12 +52,13 @@ namespace DApp
 
         #endregion
         //根合约
-        public static byte[] getSubOwner(byte[] nnshash, byte[] subhash)
+        public static byte[] getSubOwner(byte[] nnshash, string subdomain)
         {
             if (rootDomainHash.AsBigInteger() != nnshash.AsBigInteger())//只能用来分配固定的域
             {
                 return new byte[] { 0x00 };
             }
+            var subhash = nameHashSub(nnshash, subdomain);
             var owner = Storage.Get(Storage.CurrentContext, subhash);
             if (owner.Length > 0)
             {
@@ -127,7 +128,7 @@ namespace DApp
         {
             //随便调用
             if (method == "getSubOwner")
-                return getSubOwner((byte[])args[0], (byte[])args[1]);
+                return getSubOwner((byte[])args[0], (string)args[1]);
             //请求者调用
             if (method == "requestSubDomain")
                 return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);

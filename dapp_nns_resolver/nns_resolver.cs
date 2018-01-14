@@ -70,11 +70,11 @@ namespace DApp
         public static byte[] Main(string method, object[] args)
         {
             //随便调用
-            if (method == "setResolveData")
-                return setResolveData((byte[])args[0], (byte[])args[1], (string)args[2], (string)args[3], (byte[])args[4]);
-            //请求者调用
             if (method == "resolve")
                 return resolve((string)args[0], (byte[])args[1]);
+            //请求者调用
+            if (method == "setResolveData")
+                return setResolveData((byte[])args[0], (byte[])args[1], (string)args[2], (string)args[3], (byte[])args[4]);
             return new byte[] { 0 };
         }
     }
