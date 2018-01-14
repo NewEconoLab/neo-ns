@@ -66,17 +66,17 @@ namespace DApp
             }
             return new byte[] { 0x00 };
         }
-        static byte[] setSubOwner(byte[] nnshash, byte[] subhash, byte[] owner, BigInteger ttl)
+        static byte[] setSubOwner(byte[] nnshash,string subdomain, byte[] owner, BigInteger ttl)
         {
             object[] obj = new object[4];
             obj[0] = nnshash;
-            obj[1] = subhash;
+            obj[1] = subdomain;
             obj[2] = owner;
             obj[3] = ttl;
             var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
             if (r.AsBigInteger() == 1)
             {
-                //var subhash = nameHashSub(nnshash, subdomain);
+                var subhash = nameHashSub(nnshash, subdomain);
                 Storage.Put(Storage.CurrentContext, subhash, owner);
                 return new byte[] { 0x01 };
             }
@@ -89,7 +89,7 @@ namespace DApp
         //不用在其他阶段保密
         public static byte[] requestSubDomain(byte[] who, byte[] nnshash, string subdomain)
         {
-            if(subdomain.AsByteArray().Length==0)
+            if (subdomain.AsByteArray().Length == 0)
             {
                 return new byte[] { 0x00 };
             }
@@ -107,17 +107,17 @@ namespace DApp
             if (owner.Length == 0)//无人认领，直接分配
             {
                 ttl += blockday * domaindays;
-                return setSubOwner(nnshash, subhash, who, ttl);
+                return setSubOwner(nnshash, subdomain, who, ttl);
             }
             else
             { //bi
                 object[] obj = new object[1];
                 var callback = (object[])rootCall("getInfo", obj);
                 var ttltarget = (BigInteger)callback[3];
-                if (ttltarget < ttl)//过期域名
+                if (ttltarget < ttl || owner.AsBigInteger() == who.AsBigInteger())//过期域名
                 {
                     ttl += blockday * domaindays;
-                    return setSubOwner(nnshash, subhash, who, ttl);
+                    return setSubOwner(nnshash, subdomain, who, ttl);
                 }
             }
             return new byte[] { 0x00 };
