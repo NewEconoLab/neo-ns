@@ -84,8 +84,14 @@ namespace DApp
                 return new byte[] { 0x00 };
             }
         }
-        public static byte[] requestSubDomain(byte[] who, byte[] nnshash, byte[] subhash)
+        //保密机制由register 确定
+        //不用在其他阶段保密
+        public static byte[] requestSubDomain(byte[] who, byte[] nnshash, string subdomain)
         {
+            if(subdomain.AsByteArray().Length==0)
+            {
+                return new byte[] { 0x00 };
+            }
             if (rootDomainHash.AsBigInteger() != nnshash.AsBigInteger())//只能用来分配固定的域
             {
                 return new byte[] { 0x00 };
@@ -94,7 +100,7 @@ namespace DApp
             {
                 return new byte[] { 0x00 };
             }
-            //var subhash = nameHashSub(nnshash, subdomain);
+            var subhash = nameHashSub(nnshash, subdomain);
             var owner = Storage.Get(Storage.CurrentContext, subhash);
             var ttl = Blockchain.GetHeight(); ;
             if (owner.Length == 0)//无人认领，直接分配
@@ -124,7 +130,7 @@ namespace DApp
                 return getSubOwner((byte[])args[0], (byte[])args[1]);
             //请求者调用
             if (method == "requestSubDomain")
-                return requestSubDomain((byte[])args[0], (byte[])args[1], (byte[])args[2]);
+                return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
             return new byte[] { 0 };
         }
     }

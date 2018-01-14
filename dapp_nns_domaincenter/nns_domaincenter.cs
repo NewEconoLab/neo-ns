@@ -161,8 +161,12 @@ namespace DApp
         /// 注册器功能组
         /// </summary>
         //更改子域名所有者
-        static byte[] register_SetSubdomainOwner(byte[] nnshash, byte[] subhash, byte[] owner, BigInteger ttl)
+        static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
         {
+            if(subdomain.AsByteArray().Length==0)
+            {
+                return new byte[] { 0x00 };
+            }
             var ttlself = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
             if (
                 (nnshash.AsBigInteger() != rootNameHash().AsBigInteger())//一级域名不检查ttl
@@ -172,8 +176,9 @@ namespace DApp
             {
                 return new byte[] { 0x00 };
             }
-            Storage.Put(Storage.CurrentContext, subhash.Concat(new byte[] { 0x00 }), owner);
-            Storage.Put(Storage.CurrentContext, subhash.Concat(new byte[] { 0x03 }), ttl);
+            var hash = nameHashSub(nnshash, subdomain);
+            Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x00 }), owner);
+            Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 }), ttl);
             return new byte[] { 0x01 };
         }
         #endregion
@@ -191,6 +196,11 @@ namespace DApp
                 return roothash;
 
             var domain = SmartContract.Sha256(bs).Concat(roothash);
+            return SmartContract.Sha256(domain);
+        }
+        static byte[] nameHashWithSubHash(byte[] roothash,byte[] subhash)
+        {
+            var domain = subhash.Concat(roothash);
             return SmartContract.Sha256(domain);
         }
         static byte[] nameHashArray(string[] domainarray)
@@ -356,11 +366,11 @@ namespace DApp
                 int n = CheckRegister(callscript, (byte[])args[0], (byte[])args[1]);
                 if (n == 1)
                 {
-                    return register_SetSubdomainOwner((byte[])args[0], (byte[])args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger());
+                    return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger());
                 }
                 if (n == 2)
                 {
-                    return register_SetSubdomainOwner((byte[])args[1], (byte[])args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger());
+                    return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger());
                 }
                 return new byte[] { 0x00 };
             }
