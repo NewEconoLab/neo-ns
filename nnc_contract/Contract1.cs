@@ -123,7 +123,9 @@ namespace Nep5_Contract
         public static bool use(byte[] from, BigInteger value)
         {
             if (!Runtime.CheckWitness(from)) return false;
-
+            //如果有跳板调用，不让转
+            if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
+                return false;
             return __use(from, value);
         }
 
@@ -354,19 +356,23 @@ namespace Nep5_Contract
             Transferred(from, to, value);
             return true;
         }
-        public static bool transfer_app(byte[] from, byte[] to, BigInteger value)
-        {
-            if (ExecutionEngine.CallingScriptHash != from)
-                return false;
-            return __transfer(from, to, value);
-        }
+
         public static bool transfer(byte[] from, byte[] to, BigInteger value)
         {
             if (!Runtime.CheckWitness(from))
                 return false;
+            //如果有跳板调用，不让转
+            if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
+                return false;
             return __transfer(from, to, value);
         }
+        public static bool transfer_app(byte[] from, byte[] to, BigInteger value)
+        {
+            if (ExecutionEngine.CallingScriptHash != from)
+                return false;
 
+            return __transfer(from, to, value);
+        }
         public static object Main(string method, object[] args)
         {
             var magicstr = "2018-04-11";
