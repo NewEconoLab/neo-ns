@@ -16,25 +16,35 @@ namespace NeoContractTest1
         //    return new byte[] { 1 };
         //}
 
-        private static bool Main(string domain, string name, string subname)
+        private static uint Main()
         {
-            byte[] namehash = Hash256(domain.AsByteArray().Concat(name.AsByteArray()).Concat(subname.AsByteArray()));
+            //一天的秒数
+            const uint oneDay = 86400;
 
-            var owner = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
-            byte[] zeroByte32 = new byte[32];
-            //bool isZero = a == zeroByte32;
-            if (owner == zeroByte32)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return getLastBlockTimeStamp() + oneDay * 7;
+            //byte[] namehash = Hash256(domain.AsByteArray().Concat(name.AsByteArray()).Concat(subname.AsByteArray()));
+
+            //var owner = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
+            //byte[] zeroByte32 = new byte[32];
+            ////bool isZero = a == zeroByte32;
+            //if (owner == zeroByte32)
+            //{
+            //    return true;
+            //}
+            //else
+            //{
+            //    return false;
+            //}
                 
 
             //Runtime.Notify(new object[] { "namehash", namehash });
             //return a!=b;
+        }
+
+        //获取最新区块时间戳（unix格式，单位s）
+        public static uint getLastBlockTimeStamp()
+        {
+            return Blockchain.GetBlock(Blockchain.GetHeight()).Timestamp;
         }
 
         ////VerifySignatureTest
