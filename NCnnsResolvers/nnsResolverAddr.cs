@@ -1,6 +1,7 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using System;
+using System.ComponentModel;
 using System.Numerics;
 
 namespace NCnnsResolverAddr
@@ -53,6 +54,11 @@ namespace NCnnsResolverAddr
     //解决所有权人无法维护解析的问题
     //TXID:0xdf3163d928d2893e4e45f13d0ac4cb3a4723f8998eea56f0c46ae4e0443f40d9
     //scripthash:0x706c89208c5b6016a054a58cc83aeda0d70f0f95
+
+    //v0.0.9
+    //采用nep5类似模式，发出nns解析notify
+    //TXID:0xa5ec2eea180f8bae75241e168ab07d70136c706d8e9df8e82f32961d9fa51ba3
+    //scropthash:0x009e35c7b267b67b9ca89ea91e8fe71cdff470d1
 
     public class nnsResolverAddr : SmartContract
     {
@@ -144,6 +150,10 @@ namespace NCnnsResolverAddr
             return addr;
         }
 
+        //nns resolver notify
+        public delegate void deleAlertResolver(byte[] namehash, string addr);
+        [DisplayName("alertResolver")]
+        public static event deleAlertResolver AlertResolverNotify;
 
         private static byte[] Altert(string domain, string name, string subname, string addr)
         {
@@ -160,6 +170,10 @@ namespace NCnnsResolverAddr
 
                 //记录nns和地址映射
                 Storage.Put(Storage.CurrentContext, namehash, addr);
+
+                //发出域名地址解析映射通知
+                AlertResolverNotify(namehash, addr);
+
                 return GetTrueByte("altert修改");
             }
             else
@@ -178,6 +192,10 @@ namespace NCnnsResolverAddr
 
                 if (oldAddr.Length>0){
                     Storage.Delete(Storage.CurrentContext, namehash);
+
+                    //发出域名地址解析删除通知
+                    AlertResolverNotify(namehash, "");
+
                     return GetTrueByte("delete删除地址");
                 }
                 else
