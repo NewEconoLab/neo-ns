@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace Nep5_Contract
 {
-    public class ContractNep5_1 : SmartContract
+    public class ContractNNC : SmartContract
     {
         //一个完整的块天应该 4块每分钟*60*24=5760，但15秒出块只是个理论值，肯定会慢很多
         public const ulong blockday = 2;//建议用4096 这里是为了测试
@@ -88,7 +88,9 @@ namespace Nep5_Contract
             return retarray;
         }
         //消耗资产（个人）
-        private static bool __use(byte[] from, BigInteger value)
+
+
+        public static bool use(byte[] from, BigInteger value)
         {
             if (value <= 0) return false;
             var indexcash = from.Concat(new byte[] { 0 });
@@ -120,22 +122,6 @@ namespace Nep5_Contract
             return true;
         }
 
-        public static bool use(byte[] from, BigInteger value)
-        {
-            if (!Runtime.CheckWitness(from)) return false;
-            //如果有跳板调用，不让转
-            if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
-                return false;
-            return __use(from, value);
-        }
-
-        public static bool use_app(byte[] from, BigInteger value)
-        {
-            if (ExecutionEngine.CallingScriptHash != from)
-                return false;
-
-            return __use(from, value);
-        }
 
         //新奖励，（everyone）随便调用，不符合规则就不会创建奖励，谁都可以调用这个，催促发奖励。
         public static BigInteger newBonus()
@@ -308,7 +294,7 @@ namespace Nep5_Contract
             ret[3] = balance;
             return ret;
         }
-        private static bool __transfer(byte[] from, byte[] to, BigInteger value)
+        public static bool transfer(byte[] from, byte[] to, BigInteger value)
         {
             if (value <= 0) return false;
             if (from == to) return true;
@@ -357,19 +343,6 @@ namespace Nep5_Contract
             return true;
         }
 
-        public static bool transfer(byte[] from, byte[] to, BigInteger value)
-        {
-            if (!Runtime.CheckWitness(from))
-                return false;
-            return __transfer(from, to, value);
-        }
-        public static bool transfer_app(byte[] from, byte[] to, BigInteger value)
-        {
-            if (ExecutionEngine.CallingScriptHash != from)
-                return false;
-
-            return __transfer(from, to, value);
-        }
         public static object Main(string method, object[] args)
         {
             var magicstr = "2018-04-11";
@@ -395,14 +368,18 @@ namespace Nep5_Contract
                 }
                 if (method == "transfer")
                 {
-                    //如果有跳板调用，不让转
-                    if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
-                        return false;
-
                     if (args.Length != 3) return false;
                     byte[] from = (byte[])args[0];
                     byte[] to = (byte[])args[1];
                     BigInteger value = (BigInteger)args[2];
+
+                    if (!Runtime.CheckWitness(from))
+                        return false;
+
+                    //如果有跳板调用，不让转
+                    if (ExecutionEngine.EntryScriptHash.AsBigInteger() != callscript.AsBigInteger())
+                        return false;
+
                     return transfer(from, to, value);
                 }
                 if (method == "transfer_app")
@@ -412,7 +389,11 @@ namespace Nep5_Contract
                     byte[] to = (byte[])args[1];
                     BigInteger value = (BigInteger)args[2];
 
-                    return transfer_app(from, to, value);
+                    if (callscript.AsBigInteger() != from.AsBigInteger())
+                        return false;
+
+
+                    return transfer(from, to, value);
                 }
                 //this is add
 
@@ -440,6 +421,14 @@ namespace Nep5_Contract
                     if (args.Length != 2) return false;
                     byte[] from = (byte[])args[0];
                     BigInteger value = (BigInteger)args[1];
+
+                    if (!Runtime.CheckWitness(from)) return false;
+
+                    //如果有跳板调用，不让转
+                    if (ExecutionEngine.EntryScriptHash.AsBigInteger() != callscript.AsBigInteger())
+                        return false;
+
+
                     return use(from, value);
                 }
                 if (method == "use_app")
@@ -447,7 +436,12 @@ namespace Nep5_Contract
                     if (args.Length != 2) return false;
                     byte[] from = (byte[])args[0];
                     BigInteger value = (BigInteger)args[1];
-                    return use_app(from, value);
+
+                    if (callscript.AsBigInteger() != from.AsBigInteger())
+                        return false;
+
+
+                    return use(from, value);
                 }
                 if (method == "getBonus")
                 {

@@ -131,7 +131,6 @@ namespace DApp
         //快速解析
         static byte[] init(byte[] newowner)
         {
-            var callhash = ExecutionEngine.CallingScriptHash;
             var nnshash = rootNameHash();
             var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
             if (o.Length == 0)
