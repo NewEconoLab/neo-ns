@@ -17,7 +17,10 @@ namespace DApp
         //subname
         //parenthash
         //}
+        // dict<hash+0x11,NNSINFO> 
+
         //这些玩意会变的
+        //dict<hash+0x04,parentowner> //当初这个域名的爹是谁，如果对不上了就是坑爹了
         // dict<hash+0x00,owner> 记录域名拥有者数据 
         // dict<hash+0x01,register> 域名注册器
         // dict<hash+0x02,resolver> 域名解析器
