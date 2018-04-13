@@ -361,9 +361,6 @@ namespace Nep5_Contract
         {
             if (!Runtime.CheckWitness(from))
                 return false;
-            //如果有跳板调用，不让转
-            if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
-                return false;
             return __transfer(from, to, value);
         }
         public static bool transfer_app(byte[] from, byte[] to, BigInteger value)
@@ -383,6 +380,8 @@ namespace Nep5_Contract
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
+                //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
+                var callscript = ExecutionEngine.CallingScriptHash;
                 //this is in nep5
                 if (method == "totalSupply") return totalSupply();
                 if (method == "name") return name();
@@ -396,6 +395,10 @@ namespace Nep5_Contract
                 }
                 if (method == "transfer")
                 {
+                    //如果有跳板调用，不让转
+                    if (ExecutionEngine.EntryScriptHash.AsBigInteger() != ExecutionEngine.CallingScriptHash.AsBigInteger())
+                        return false;
+
                     if (args.Length != 3) return false;
                     byte[] from = (byte[])args[0];
                     byte[] to = (byte[])args[1];
