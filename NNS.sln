@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nns_resolver", "nns_resolve
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nns_register", "nns_register", "{2D75EEDA-1D67-40E0-AF53-CFAB996EE392}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_register_sell", "dapp_nns_register_sell\dapp_nns_register_sell.csproj", "{94380D4A-B521-4D7B-A758-2B30430E4A56}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,10 @@ Global
 		{61D9E518-71CE-486F-A278-F86144E8BA8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61D9E518-71CE-486F-A278-F86144E8BA8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61D9E518-71CE-486F-A278-F86144E8BA8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94380D4A-B521-4D7B-A758-2B30430E4A56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94380D4A-B521-4D7B-A758-2B30430E4A56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94380D4A-B521-4D7B-A758-2B30430E4A56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94380D4A-B521-4D7B-A758-2B30430E4A56}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,6 +86,7 @@ Global
 		{140643D9-6C60-4490-9C67-DA011AEA310B} = {C47A640D-EB5D-444A-8C22-927E41ED2FD1}
 		{5D2CD131-52C8-4CDA-A1B8-01F857ECB0D3} = {03708A64-C548-47E3-A6E8-CEFFE1E914F0}
 		{61D9E518-71CE-486F-A278-F86144E8BA8D} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
+		{94380D4A-B521-4D7B-A758-2B30430E4A56} = {2D75EEDA-1D67-40E0-AF53-CFAB996EE392}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA753102-3A6A-40F2-B3CC-440DE8A9A356}

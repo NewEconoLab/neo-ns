@@ -22,25 +22,17 @@ namespace DApp
         // dict<hash+0x01,register> 域名注册器
         // dict<hash+0x02,resolver> 域名解析器
         // dict<hash+0x03,ttl>   记录域名过期数据
-        //InitSuperAdmin 一次性超级管理员，超级管理员只能转让根域名的所有权
+        //SuperAdmin 超级管理员，超级管理员改成可以管理多个根的注册器的
         //使用Nep4
         //所有者可以设置自己域名的控制器
         //以后还应该设置联合所有权的机制，多个所有者，几人以上签名才可用
 
         const int blockday = 4096;//粗略一天的块数
 
-        const string rootDomain = "test";
-        static readonly byte[] initSuperAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
         static readonly byte[] jumpContract = Helper.HexToBytes("62134ef8f4aadfa9cb5cba564cdd414a53ddfbdf");//注意 script_hash 是反序的
         //跳板合约为0xdffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362
-        public static byte[] rootNameHash()
-        {
-            return nameHash(rootDomain);
-        }
-        public static string rootName()
-        {
-            return rootDomain;
-        }
+
         public static object[] getInfo(byte[] nnshash)
         {
             object[] ret = new object[4];
@@ -136,14 +128,27 @@ namespace DApp
             return _doresolve(resolver, nnshash, protocol, fullhash);
         }
         //快速解析
-        static byte[] init(byte[] newowner)
+        static byte[] initRoot(string rootname, byte[] newregister)
         {
-            var nnshash = rootNameHash();
+            var nnshash = nameHash(rootname);
+
+            var oldinfo = GetNNSInfo(nnshash);
+            if (oldinfo.Length > 0)
+            {
+                //return new byte[] { 0x00, 0x01 };//已经存在根域名记录了，可以允许修改的吧
+            }
+
+            NNSInfo info = new NNSInfo();
+            info.parenthash = new byte[0];
+            info.root = 1;
+            info.domain = rootname;
+            SaveNNSInfo(nnshash,info);
             var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
             if (o.Length == 0)
             {
                 //初始管理員衹有一個功能,就是轉讓根域名管理權，而且是一次性的，一旦轉讓出去，初始管理員就沒用了
-                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
+                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), superAdmin);
+                Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), superAdmin);
                 return new byte[] { 0x01 };
             }
             return new byte[] { 0x00 };
@@ -175,15 +180,22 @@ namespace DApp
         //更改子域名所有者
         public class NNSInfo
         {
-            public string subdomain;
+            public string domain;
             public byte[] parenthash;
             public int root;//是不是根合约
         }
-        static NNSInfo GetNNSInfo(byte[] hash)
+        static object[] GetNNSInfo(byte[] hash)
         {
             var data = Storage.Get(Storage.CurrentContext, hash);
             var nnsInfo = Helper.Deserialize(data) as NNSInfo;
-            return nnsInfo;
+            return (object[])(object)nnsInfo;
+        }
+        static void SaveNNSInfo(byte[] hash, NNSInfo info)
+        {
+            var hash2 = info.root == 1 ? nameHash(info.domain) : nameHashSub(info.parenthash, info.domain);
+            if (hash2.AsBigInteger() != hash.AsBigInteger())
+                throw new Exception("error hash.");
+            Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x11 }), Helper.Serialize(info));
         }
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
         {
@@ -192,8 +204,13 @@ namespace DApp
                 return new byte[] { 0x00 };
             }
             var ttlself = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
+            var info = GetNNSInfo(nnshash);
+            if (info.Length == 0)
+            {
+                throw new Exception("没找到根域名信息");
+            }
             if (
-                (nnshash.AsBigInteger() != rootNameHash().AsBigInteger())//一级域名不检查ttl
+                ((NNSInfo)(object)info).root == 0//一级域名不检查ttl
                 &&
                 ttl > ttlself
                 )
@@ -207,10 +224,10 @@ namespace DApp
             //记录域名信息
             NNSInfo ninfo = new NNSInfo();
             ninfo.parenthash = nnshash;
-            ninfo.parenthash = nnshash;
+            ninfo.domain = subdomain;
             ninfo.root = 0;
-            Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x11 }), Helper.Serialize(ninfo));
 
+            SaveNNSInfo(hash, ninfo);
             return new byte[] { 0x01 };
         }
         #endregion
@@ -323,10 +340,6 @@ namespace DApp
 
 
             #region 通用功能,不需要权限验证
-            if (method == "rootName")
-                return rootName();
-            if (method == "rootNameHash")
-                return rootNameHash();
             if (method == "getInfo")
                 return getInfo((byte[])args[0]);
             if (method == "nameHash")
@@ -340,12 +353,14 @@ namespace DApp
             if (method == "resolveFull")
                 return resolveFull((string)args[0], (string[])args[1]);
             #endregion
-            #region 初始化功能,仅限初始管理员
-            if (method == "init")
+            #region 配置根合约注册器,仅限管理员
+            if (method == "initRoot")
             {
-                if (Runtime.CheckWitness(initSuperAdmin))
+                if (Runtime.CheckWitness(superAdmin))
                 {
-                    return init((byte[])args[0]);
+                    string rootdomain = (string)args[0];
+                    byte[] register = (byte[])args[1];
+                    return initRoot(rootdomain, register);
                 }
                 return new byte[] { 0x00 };
             }
