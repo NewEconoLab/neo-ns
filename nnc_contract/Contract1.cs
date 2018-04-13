@@ -1,6 +1,7 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
+using Helper = Neo.SmartContract.Framework.Helper;
 using System;
 using System.ComponentModel;
 using System.Numerics;
@@ -339,10 +340,76 @@ namespace Nep5_Contract
             {
                 Storage.Put(Storage.CurrentContext, indexcashto, to_value_cash + value);
             }
+
+            //记录交易信息
+            setTxInfo(from, to, value);
+
+            //交易notify
             Transferred(from, to, value);
             return true;
         }
+        public class TransferInfo
+        {
+            public byte[] from;
+            public byte[] to;
+            public BigInteger value;
+        }
+        private static byte[] byteLen(BigInteger n)
+        {
+            byte[] v = n.AsByteArray();
+            if (v.Length > 2)
+                throw new Exception("not support");
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            return v;
+        }
+        public static TransferInfo getTXInfo(byte[] txid)
+        {
+            byte[] v = Storage.Get(Storage.CurrentContext, txid);
+            if (v.Length == 0)
+                return null;
 
+            //老式实现方法
+            TransferInfo info = new TransferInfo();
+            int seek = 0;
+            var fromlen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            seek += 2;
+            info.from = v.AsString().Substring(seek, fromlen).AsByteArray();
+            seek += fromlen;
+            var tolen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            seek += 2;
+            info.to = v.AsString().Substring(seek, tolen).AsByteArray();
+            seek += tolen;
+            var valuelen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            seek += 2;
+            info.value = v.AsString().Substring(seek, valuelen).AsByteArray().AsBigInteger();
+            return info;
+
+            //新式实现方法只要一行
+            // return Helper.Deserialize(v) as TransferInfo;
+        }
+        private static void setTxInfo(byte[] from, byte[] to, BigInteger value)
+        {
+            //因为testnet 还在2.6，限制
+
+            TransferInfo info = new TransferInfo();
+            info.from = from;
+            info.to = to;
+            info.value = value;
+
+            //用一个老式实现法
+            byte[] txinfo = byteLen(info.from.Length).Concat(info.from);
+            txinfo = txinfo.Concat(byteLen(info.to.Length)).Concat(info.to);
+            byte[] _value = value.AsByteArray();
+            txinfo = txinfo.Concat(byteLen(_value.Length)).Concat(_value);
+            //新式实现方法只要一行
+            //byte[] txinfo = Helper.Serialize(info);
+
+            var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+            Storage.Put(Storage.CurrentContext, txid, txinfo);
+        }
         public static object Main(string method, object[] args)
         {
             var magicstr = "2018-04-11";
@@ -442,6 +509,12 @@ namespace Nep5_Contract
 
 
                     return use(from, value);
+                }
+                if (method == "getTXInfo")
+                {
+                    if (args.Length != 1) return 0;
+                    byte[] txid = (byte[])args[0];
+                    return getTXInfo(txid);
                 }
                 if (method == "getBonus")
                 {

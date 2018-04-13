@@ -33,7 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Neo.SmartContract.Framework, Version=2.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Neo.SmartContract.Framework, Version=2.5.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Neo.SmartContract.Framework.dll</HintPath>
     </Reference>

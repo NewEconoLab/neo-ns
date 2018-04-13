@@ -1,9 +1,10 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
+using Helper = Neo.SmartContract.Framework.Helper;
+
 using System;
 using System.Numerics;
-
 namespace DApp
 {
     public class nns_domaincenter : SmartContract
@@ -11,7 +12,13 @@ namespace DApp
         //域名中心 
         //    域名中心是一个不会改变地址的合约，他的作用是管理某一个域名的数据
         //使用存储
-        // dict<hash+0x00,owner> 记录域名拥有者数据
+        //DomainInfo 这两个是不变的
+        //{
+        //subname
+        //parenthash
+        //}
+        //这些玩意会变的
+        // dict<hash+0x00,owner> 记录域名拥有者数据 
         // dict<hash+0x01,register> 域名注册器
         // dict<hash+0x02,resolver> 域名解析器
         // dict<hash+0x03,ttl>   记录域名过期数据
@@ -166,6 +173,18 @@ namespace DApp
         /// 注册器功能组
         /// </summary>
         //更改子域名所有者
+        public class NNSInfo
+        {
+            public string subdomain;
+            public byte[] parenthash;
+            public int root;//是不是根合约
+        }
+        static NNSInfo GetNNSInfo(byte[] hash)
+        {
+            var data = Storage.Get(Storage.CurrentContext, hash);
+            var nnsInfo = Helper.Deserialize(data) as NNSInfo;
+            return nnsInfo;
+        }
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
         {
             if (subdomain.AsByteArray().Length == 0)
@@ -184,6 +203,14 @@ namespace DApp
             var hash = nameHashSub(nnshash, subdomain);
             Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x00 }), owner);
             Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 }), ttl);
+
+            //记录域名信息
+            NNSInfo ninfo = new NNSInfo();
+            ninfo.parenthash = nnshash;
+            ninfo.parenthash = nnshash;
+            ninfo.root = 0;
+            Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x11 }), Helper.Serialize(ninfo));
+
             return new byte[] { 0x01 };
         }
         #endregion
