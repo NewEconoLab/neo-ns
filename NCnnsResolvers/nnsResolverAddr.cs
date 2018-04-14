@@ -60,6 +60,11 @@ namespace NCnnsResolverAddr
     //TXID:0xa5ec2eea180f8bae75241e168ab07d70136c706d8e9df8e82f32961d9fa51ba3
     //scropthash:0x009e35c7b267b67b9ca89ea91e8fe71cdff470d1
 
+    //v0.0.10
+    //暂时去除CheckNnsOwner对未注册的判断
+    //TXID:0x391d8ee93d8474a73254ff08980ad0bdbdf68c3bd89b19eaa9e2c4208a0942ab
+    //scropthash:0xb07a50ceaf2b5831534fbb8c455c6c4085631bc9
+
     public class nnsResolverAddr : SmartContract
     {
         string miagic = "qingmingzi";//魔法代码
@@ -124,11 +129,12 @@ namespace NCnnsResolverAddr
             Runtime.Notify(new object[] { "取到owner", owner });
 
             //如果域名没有注册，所有者验证返回假
-            byte[] zeroByte32 = new byte[32];
-            if (owner == zeroByte32) {
-                Runtime.Notify(new object[] { "CheckWitness验证（未注册）", new byte[] { 0 } });
-                return false;
-            }
+            //byte[] zeroByte32 = new byte[32];
+            //if (owner == zeroByte32)
+            //{
+            //    Runtime.Notify(new object[] { "CheckWitness验证（未注册）", new byte[] { 0 } });
+            //    return false;
+            //}
 
             if (Runtime.CheckWitness(owner)){
                 byte[] trueByte = new byte[] { 1 };

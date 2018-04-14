@@ -1,6 +1,7 @@
 ﻿using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Services.Neo;
 using System;
+using System.ComponentModel;
 using System.Numerics;
 using System.Text;
 
@@ -15,13 +16,38 @@ namespace NeoContractTest1
         //    //Runtime.Notify(new object[] { "return", trueByte });
         //    return new byte[] { 1 };
         //}
+        public delegate void deleAlertResolver(byte[] namehash, string addr);
+        [DisplayName("alertResolver")]
+        public static event deleAlertResolver AlertResolverNotify;
 
-        private static uint Main()
+        private static bool Main()
         {
-            //一天的秒数
-            const uint oneDay = 86400;
+            //0xff7fe7c0f539f8ea0f0966ecb1bdc8ea984e7a9f
+            //0x51cc89870f9088cae2c5c8aa651fb69feb6d212a0958071f0b66e46a1ecaced7
+            byte[] owner = testRegistry("neo", "qingmingzi", "");
+            byte[] zeroByte32 = new byte[32];
 
-            return getLastBlockTimeStamp() + oneDay * 7;
+            AlertResolverNotify(owner, "AYX8yqcvQroV9mJ5k4Ez2gro8Kjh7B78kD");
+
+            if (owner == zeroByte32)
+            {
+                Runtime.Notify(new object[] { "CheckWitness验证（未注册）", new byte[] { 0 } });
+                return false;
+            }
+            else { return true; }
+
+            //return GetTrueByte("test");
+
+
+            //return Runtime.CheckWitness(testRegistry("neo", "qingmingzi", ""));
+            //return getZeroByte32BI();
+
+            ////一天的秒数
+            //const uint oneDay = 86400;
+
+            //return getLastBlockTimeStamp() + oneDay * 7;
+
+
             //byte[] namehash = Hash256(domain.AsByteArray().Concat(name.AsByteArray()).Concat(subname.AsByteArray()));
 
             //var owner = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 };
@@ -35,10 +61,33 @@ namespace NeoContractTest1
             //{
             //    return false;
             //}
-                
+
 
             //Runtime.Notify(new object[] { "namehash", namehash });
             //return a!=b;
+        }
+
+        public static byte[] GetTrueByte(string label)
+        {
+            byte[] trueByte = new byte[] { 1 };
+
+            Runtime.Notify(new object[] { label, trueByte });
+            return trueByte;
+        }
+
+        [Appcall("c191b3e4030b9105e59c6bb56ec0d1273cd43284")]//nns注册器 ScriptHash
+        public static extern byte[] NnsRegistry(byte[] signature, string operation, object[] args);
+        public static byte[] testRegistry(string domain, string name, string subname)
+        {
+            byte[] owner = NnsRegistry(new byte[32], "query", new object[] { domain, name, subname });
+
+            return owner;
+        }
+
+        public static BigInteger getZeroByte32BI()
+        {
+            byte[] zeroByte32 = new byte[32];
+            return zeroByte32.AsBigInteger();
         }
 
         //获取最新区块时间戳（unix格式，单位s）
