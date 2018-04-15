@@ -259,7 +259,7 @@ namespace DApp
         }
         public static OwnerInfo getOwnerInfo(byte[] hash)
         {
-            var key = hash.Concat(new byte[] { 0x12 });
+            var key = new byte[] { 0x12 }.Concat(hash);
             var data = Storage.Get(Storage.CurrentContext, key);
             if (data.Length == 0)
             {
@@ -272,7 +272,7 @@ namespace DApp
         }
         static void saveOwnerInfo(byte[] hash, OwnerInfo state)
         {
-            var key = hash.Concat(new byte[] { 0x12 });
+            var key = new byte[] { 0x12 }.Concat(hash);
             var value = Helper.Serialize(state);
             Storage.Put(Storage.CurrentContext, key, value);
 
@@ -286,7 +286,7 @@ namespace DApp
         }
         public static NameInfo getNameInfo(byte[] hash)
         {
-            var key = hash.Concat(new byte[] { 0x11 });
+            var key = new byte[] { 0x11 }.Concat(hash);
 
             var data = Storage.Get(Storage.CurrentContext, key);
             if (data.Length == 0)
@@ -304,7 +304,7 @@ namespace DApp
             if (hash2.AsBigInteger() != hash.AsBigInteger())
                 throw new Exception("error hash.");
 
-            var key = hash.Concat(new byte[] { 0x11 });
+            var key = new byte[] { 0x11 }.Concat(hash);
             var value = Helper.Serialize(info);
 
             Storage.Put(Storage.CurrentContext, key, value);
