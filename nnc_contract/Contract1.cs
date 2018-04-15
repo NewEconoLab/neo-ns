@@ -369,8 +369,11 @@ namespace Nep5_Contract
         {
             byte[] v = Storage.Get(Storage.CurrentContext, txid);
             if (v.Length == 0)
-                return null;
-
+            {
+                TransferInfo einfo = new TransferInfo();
+                einfo.from = new byte[0];
+                return einfo;
+            }
             //老式实现方法
             TransferInfo info = new TransferInfo();
             int seek = 0;

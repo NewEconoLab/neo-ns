@@ -249,6 +249,19 @@ namespace DApp
         // dict<hash+0x01,register> 域名注册器
         // dict<hash+0x02,resolver> 域名解析器
         // dict<hash+0x03,ttl>   记录域名过期数据
+
+        private static byte[] byteLen(BigInteger n)
+        {
+            byte[] v = n.AsByteArray();
+            if (v.Length > 2)
+                throw new Exception("not support");
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            return v;
+        }
+
         public class OwnerInfo
         {
             public byte[] owner;//如果长度=0 表示没有初始化
@@ -267,13 +280,51 @@ namespace DApp
                 state.owner = new byte[0];
                 return state;
             }
-            var nnsState = Helper.Deserialize(data) as OwnerInfo;
-            return nnsState;
+
+            //老式实现方法
+            OwnerInfo info = new OwnerInfo();
+            int seek = 0;
+            int len = 0;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.owner = data.Range(seek, len);
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.register = data.Range(seek, len);
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.resolver = data.Range(seek, len);
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.TTL = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.parentOwner = data.Range(seek, len);
+
+            //新式实现方法
+            //var info = Helper.Deserialize(data) as OwnerInfo;
+            return info;
         }
         static void saveOwnerInfo(byte[] hash, OwnerInfo state)
         {
             var key = new byte[] { 0x12 }.Concat(hash);
-            var value = Helper.Serialize(state);
+
+            byte[] value = byteLen(state.owner.Length).Concat(state.owner);
+            value = value.Concat(byteLen(state.register.Length)).Concat(state.register);
+            value = value.Concat(byteLen(state.resolver.Length)).Concat(state.resolver);
+            value = value.Concat(byteLen(state.TTL.AsByteArray().Length)).Concat(state.TTL.AsByteArray());
+            value = value.Concat(byteLen(state.parentOwner.Length)).Concat(state.parentOwner);
+
+            //var value = Helper.Serialize(state);
             Storage.Put(Storage.CurrentContext, key, value);
 
             onChangeOwnerInfo(hash, state);
@@ -282,7 +333,7 @@ namespace DApp
         {
             public string domain;//如果长度=0 表示没有初始化
             public byte[] parenthash;
-            public int root;//是不是根合约
+            public BigInteger root;//是不是根合约
         }
         public static NameInfo getNameInfo(byte[] hash)
         {
@@ -291,12 +342,34 @@ namespace DApp
             var data = Storage.Get(Storage.CurrentContext, key);
             if (data.Length == 0)
             {
-                NameInfo info = new NameInfo();
-                info.domain = "";
+                NameInfo einfo = new NameInfo();
+                einfo.domain = "";
+                return einfo;
             }
-            var nnsInfo = Helper.Deserialize(data) as NameInfo;
-            return nnsInfo;
+
+            //老式实现方法
+            NameInfo info = new NameInfo();
+            int seek = 0;
+            var domainlen = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.domain = data.Range(seek, domainlen).AsString();
+            seek += domainlen;
+
+            var parenthashlen = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.parenthash = data.Range(seek, parenthashlen);
+            seek += parenthashlen;
+
+            var rootlen = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.root = data.Range(seek, rootlen).AsBigInteger();
+            return info;
+
+
+            //var nnsInfo = Helper.Deserialize(data) as NameInfo;
+            //return nnsInfo;
         }
+
         static void saveNameInfo(byte[] hash, NameInfo info)
         {
 
@@ -305,7 +378,14 @@ namespace DApp
                 throw new Exception("error hash.");
 
             var key = new byte[] { 0x11 }.Concat(hash);
-            var value = Helper.Serialize(info);
+
+            //老实实现法
+
+            byte[] value = byteLen(info.domain.Length).Concat(info.domain.AsByteArray());
+            value = value.Concat(byteLen(info.parenthash.Length)).Concat(info.parenthash);
+            value = value.Concat(byteLen(info.root.AsByteArray().Length)).Concat(info.root.AsByteArray());
+            //新式实现法
+            //var value = Helper.Serialize(info);
 
             Storage.Put(Storage.CurrentContext, key, value);
 
