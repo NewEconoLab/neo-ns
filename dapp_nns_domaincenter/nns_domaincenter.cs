@@ -48,6 +48,25 @@ namespace DApp
         //}
 
         delegate byte[] deleDyncall(string method, object[] arr);
+
+        static string getDomain(byte[] hash)
+        {
+            string outstr = "";
+            byte[] phash = hash;
+            for (var i = 0; i < 10; i++)
+            {
+                var info = getNameInfo(phash);
+                phash = info.parenthash;
+                if (info.root == 0)
+                {
+                    if (i == 0)
+                        outstr = info.domain;
+                    else
+                        outstr = info.domain + "." + outstr;
+                }
+            }
+            return outstr;
+        }
         //域名解析
         //完整解析，可以处理各种域名到期，权限变化问题，也可以处理动态解析
         static byte[] resolveFull(string protocol, string[] domainarray)
@@ -430,20 +449,48 @@ namespace DApp
 
 
             #region 通用功能,不需要权限验证
+            if (method == "getDomain")
+            {
+                var hash = (byte[])args[0];
+                return getDomain(hash);
+            }
             if (method == "getOwnerInfo")
+            {
                 return getOwnerInfo((byte[])args[0]);
+            }
             if (method == "getNameInfo")
+            {
                 return getOwnerInfo((byte[])args[0]);
+            }
             if (method == "nameHash")
-                return nameHash((string)args[0]);
+            {
+                var name = (string)args[0];
+                return nameHash(name);
+            }
             if (method == "nameHashSub")
-                return nameHashSub((byte[])args[0], (string)args[1]);
+            {
+                var rootHash = (byte[])args[0];
+                var subdomain = (string)args[1];
+                return nameHashSub(rootHash,subdomain);
+            }
             if (method == "nameHashArray")
-                return nameHashArray((string[])args[0]);
+            {
+                string[] list = (string[])args[0];
+                return nameHashArray(list);
+            }
             if (method == "resolve")
-                return resolve((string)args[0], (byte[])args[1], (string)args[2]);
+            {
+                string protocol = (string)args[0];
+                var rootHash = (byte[])args[1];
+                var subdomain = (string)args[2];
+                return resolve(protocol,rootHash,subdomain);
+            }
             if (method == "resolveFull")
-                return resolveFull((string)args[0], (string[])args[1]);
+            {
+                string protocol = (string)args[0];
+                string[] list = (string[])args[0];
+                return resolveFull(protocol, list);
+            }
             #endregion
             #region 配置根合约注册器,仅限管理员
             if (method == "initRoot")
