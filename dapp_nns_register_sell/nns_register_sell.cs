@@ -15,14 +15,11 @@ namespace DApp
         // dict<subhash+0x01,owner > 记录域名拥有者数据
         // dict<subhash+0x02,ttl > 记录域名拥有者数据
 
-        const int blockday = 4096;//粗略一天的块数
+        const int blockday = 3600*24;//粗略一天的块数
         const int domaindays = 1;//租一次给几天
 
         [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
         static extern object rootCall(string method, object[] arr);
-
-        static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-
 
 
         #region 域名转hash算法
@@ -52,41 +49,6 @@ namespace DApp
         }
 
         #endregion
-        //根合约
-        public static byte[] getSubOwner(byte[] nnshash, string subdomain)
-        {
-            if (rootDomainHash.AsBigInteger() != nnshash.AsBigInteger())//只能用来分配固定的域
-            {
-                return new byte[] { 0x00 };
-            }
-            var subhash = nameHashSub(nnshash, subdomain);
-            var owner = Storage.Get(Storage.CurrentContext, subhash);
-            if (owner.Length > 0)
-            {
-                return owner;
-            }
-            return new byte[] { 0x00 };
-        }
-        static byte[] setSubOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
-        {
-            object[] obj = new object[4];
-            obj[0] = nnshash;
-            obj[1] = subdomain;
-            obj[2] = owner;
-            obj[3] = ttl;
-            var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
-            if (r.AsBigInteger() == 1)
-            {
-                var subhash = nameHashSub(nnshash, subdomain);
-                Storage.Put(Storage.CurrentContext, subhash, owner);
-                return new byte[] { 0x01 };
-            }
-            else
-            {
-                return new byte[] { 0x00 };
-            }
-        }
-        //保密机制由register 确定
         //不用在其他阶段保密
         public static byte[] requestSubDomain(byte[] who, byte[] nnshash, string subdomain)
         {
