@@ -5,6 +5,8 @@ using Helper = Neo.SmartContract.Framework.Helper;
 
 using System;
 using System.Numerics;
+using System.ComponentModel;
+
 namespace DApp
 {
     public class nns_domaincenter : SmartContract
@@ -34,7 +36,7 @@ namespace DApp
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
         static readonly byte[] jumpContract = Helper.HexToBytes("62134ef8f4aadfa9cb5cba564cdd414a53ddfbdf");//注意 script_hash 是反序的
-        //跳板合约为0xdffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362
+                                                                                                            //跳板合约为0xdffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
@@ -46,6 +48,14 @@ namespace DApp
         //    ret[3] = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 }));
         //    return ret;
         //}
+        //通知 域名信息變更
+        public delegate void deleOwnerInfoChange(byte[] namehash, OwnerInfo addr);
+        [DisplayName("changeOwnerInfo")]
+        public static event deleOwnerInfoChange onChangeOwnerInfo;
+        //通知 新的域名
+        public delegate void deleInitDomain(byte[] namehash, string domain, NameInfo addr);
+        [DisplayName("initDomain")]
+        public static event deleInitDomain onInitDomain;
 
         delegate byte[] deleDyncall(string method, object[] arr);
 
@@ -172,11 +182,15 @@ namespace DApp
             //    return new byte[] { 0x00, 0x01 };//已经存在根域名记录了，可以允许修改的吧
             //}
 
-            NameInfo info = new NameInfo();
-            info.parenthash = new byte[0];
-            info.root = 1;
-            info.domain = rootname;
-            saveNameInfo(nnshash, info);
+            var ninfo = getNameInfo(nnshash);
+            if (ninfo.domain.Length == 0)
+            {
+                ninfo = new NameInfo();
+                ninfo.parenthash = new byte[0];
+                ninfo.root = 1;
+                ninfo.domain = rootname;
+                saveNameInfo(nnshash, ninfo);
+            }
 
             OwnerInfo oinfo = new OwnerInfo();
             oinfo.owner = superAdmin;
@@ -261,6 +275,8 @@ namespace DApp
             var key = hash.Concat(new byte[] { 0x12 });
             var value = Helper.Serialize(state);
             Storage.Put(Storage.CurrentContext, key, value);
+
+            onChangeOwnerInfo(hash, state);
         }
         public class NameInfo
         {
@@ -292,6 +308,8 @@ namespace DApp
             var value = Helper.Serialize(info);
 
             Storage.Put(Storage.CurrentContext, key, value);
+
+            onInitDomain(hash, getDomain(hash), info);
         }
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
         {
@@ -317,7 +335,7 @@ namespace DApp
             var hash = nameHashSub(nnshash, subdomain);
 
             //記錄所有者信息
-            var info = getOwnerInfo(nnshash);
+            var info = getOwnerInfo(hash);
             if (info.owner.Length == 0)
                 info = new OwnerInfo();
             info.owner = owner;
@@ -328,11 +346,15 @@ namespace DApp
             //Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 }), ttl);
 
             //记录域名信息
-            NameInfo ninfo = new NameInfo();
-            ninfo.parenthash = nnshash;
-            ninfo.domain = subdomain;
-            ninfo.root = 0;
-            saveNameInfo(hash, ninfo);
+            var ninfo = getNameInfo(hash);
+            if (ninfo.domain.Length == 0)
+            {
+                ninfo = new NameInfo();
+                ninfo.parenthash = nnshash;
+                ninfo.domain = subdomain;
+                ninfo.root = 0;
+                saveNameInfo(hash, ninfo);
+            }
             return new byte[] { 0x01 };
         }
         #endregion
@@ -471,7 +493,7 @@ namespace DApp
             {
                 var rootHash = (byte[])args[0];
                 var subdomain = (string)args[1];
-                return nameHashSub(rootHash,subdomain);
+                return nameHashSub(rootHash, subdomain);
             }
             if (method == "nameHashArray")
             {
@@ -483,7 +505,7 @@ namespace DApp
                 string protocol = (string)args[0];
                 var rootHash = (byte[])args[1];
                 var subdomain = (string)args[2];
-                return resolve(protocol,rootHash,subdomain);
+                return resolve(protocol, rootHash, subdomain);
             }
             if (method == "resolveFull")
             {

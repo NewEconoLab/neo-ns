@@ -15,12 +15,14 @@ namespace DApp
         // dict<subhash+0x01,owner > 记录域名拥有者数据
         // dict<subhash+0x02,ttl > 记录域名拥有者数据
 
-        const int blockday = 3600*24;//粗略一天的块数
+        const int blockday = 3600 * 24;//粗略一天的块数
         const int domaindays = 1;//租一次给几天
 
         [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
         static extern object rootCall(string method, object[] arr);
 
+        [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
+        static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
         //域名转hash算法
@@ -49,42 +51,7 @@ namespace DApp
         }
 
         #endregion
-        //不用在其他阶段保密
-        public static byte[] requestSubDomain(byte[] who, byte[] nnshash, string subdomain)
-        {
-            if (subdomain.AsByteArray().Length == 0)
-            {
-                return new byte[] { 0x00 };
-            }
-            if (rootDomainHash.AsBigInteger() != nnshash.AsBigInteger())//只能用来分配固定的域
-            {
-                return new byte[] { 0x00 };
-            }
-            if (Runtime.CheckWitness(who) == false)
-            {
-                return new byte[] { 0x00 };
-            }
-            var subhash = nameHashSub(nnshash, subdomain);
-            var owner = Storage.Get(Storage.CurrentContext, subhash);
-            var ttl = Blockchain.GetHeight(); ;
-            if (owner.Length == 0)//无人认领，直接分配
-            {
-                ttl += blockday * domaindays;
-                return setSubOwner(nnshash, subdomain, who, ttl);
-            }
-            else
-            { //bi
-                object[] obj = new object[1];
-                var callback = (object[])rootCall("getInfo", obj);
-                var ttltarget = (BigInteger)callback[3];
-                if (ttltarget < ttl || owner.AsBigInteger() == who.AsBigInteger())//过期域名
-                {
-                    ttl += blockday * domaindays;
-                    return setSubOwner(nnshash, subdomain, who, ttl);
-                }
-            }
-            return new byte[] { 0x00 };
-        }
+
         public enum DomainUseStatus
         {
             Empty,//未注冊
@@ -96,11 +63,79 @@ namespace DApp
             public DomainUseStatus status;
             public byte[] lastsellingID;//上一次拍賣的拍賣ID
         }
+        #region 資金管理
+        //dict<0x11+who,bigint money> //money字典
+        //dict<0x12+txid,0 or 1> //交易是否已充值字典
+        public class TransferInfo
+        {
+            public byte[] from;
+            public byte[] to;
+            public BigInteger value;
+        }
+        static TransferInfo getTxIn(byte[] txid)
+        {
+            var keytx = new byte[] { 0x12 }.Concat(txid);
+            var v = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
+            if (v == 0)//如果這個交易已經處理過，就當get不到
+            {
+                object[] _p = new object[1];
+                _p[0] = txid;
+                var info = nncCall("getTXInfo", _p);
+                if (((object[])info).Length == 3)
+                    return info as TransferInfo;
+            }
+            var tInfo = new TransferInfo();
+            tInfo.from = new byte[0];
+            return tInfo;
+        }
+        //返回我在拍賣合約裏面存的nnc余額
+        public static BigInteger balanceOf(byte[] who)
+        {
+            var key = who.Concat(new byte[] { 0x11 });
+            return Storage.Get(Storage.CurrentContext, key).AsBigInteger();
+        }
+        public static bool setMoneyIn(byte[] txid)
+        {
+            var tx = getTxIn(txid);
+            if (tx.from.Length == 0)
+                return false;
+            if (tx.to.AsBigInteger() == ExecutionEngine.ExecutingScriptHash.AsBigInteger())
+            {
+                //存錢
+                var key = new byte[] { 0x11 }.Concat(tx.to);
+                var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
+                money += tx.value;
+                Storage.Put(Storage.CurrentContext, key, money);
+                //記錄這個txid處理過了，只處理一次
+                var keytx = new byte[] { 0x12 }.Concat(txid);
+                Storage.Put(Storage.CurrentContext, keytx, 1);
+            }
+            return false;
+        }
+        public static bool getMoneyBack(byte[] who, BigInteger count)
+        {
+            var key = new byte[] { 0x11 }.Concat(who);
+            var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
+            if (money < count)
+                return false;
+            //存錢
+            object[] trans = new object[3];
+            trans[0] = ExecutionEngine.ExecutingScriptHash;
+            trans[1] = who;
+            trans[2] = count;
+            bool succ = (bool)nncCall("transer", trans);
+            if (succ)
+            {
+                money -= count;
+                Storage.Put(Storage.CurrentContext, key, money);
+                return true;
+            }
+
+            return false;
+        }
+        #endregion
         public static object Main(string method, object[] args)
         {
-            //随便调用，subowner 這個機制可否直接保存
-            if (method == "getSubOwner")
-                return getSubOwner((byte[])args[0], (string)args[1]);
             //请求者调用
             //不能這樣暴力開了
             //if (method == "requestSubDomain")
@@ -155,15 +190,18 @@ namespace DApp
             if (method == "balanceOf")
             {
                 byte[] who = (byte[])args[0];
+                return balanceOf(who);
             }
             if (method == "getmoneyback")//把多餘的錢取回
             {
                 byte[] who = (byte[])args[0];
                 BigInteger myprice = (BigInteger)args[2];
+                return getMoneyBack(who, myprice);
             }
             if (method == "setmoneyin")//如果用普通方式轉了nep5進來，也不要緊
             {
-                byte[] txid = (byte[])args[3];//提供一個txid，查這筆txid 的nep5入賬證明
+                byte[] txid = (byte[])args[0];//提供一個txid，查這筆txid 的nep5入賬證明
+                return setMoneyIn(txid);
             }
             return new byte[] { 0 };
         }
