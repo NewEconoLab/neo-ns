@@ -18,10 +18,12 @@ namespace DApp
         const int blockday = 3600 * 24;//粗略一天的块数
         const int domaindays = 1;//租一次给几天
 
+        //域名中心合约地址
         [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
         static extern object rootCall(string method, object[] arr);
 
-        [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
+        //nnc合约地址
+        [Appcall("fe3c9a03242e90423093e1733b7640c847883205")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
