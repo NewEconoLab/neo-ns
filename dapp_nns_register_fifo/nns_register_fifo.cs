@@ -15,7 +15,7 @@ namespace DApp
         // dict<subhash+0x01,owner > 记录域名拥有者数据
         // dict<subhash+0x02,ttl > 记录域名拥有者数据
 
-        const int blockday = 24 * 3600;//一天
+        const int secondperday = 24 * 3600;//一天
         const int domaindays = 1;//租一次给几天
 
         [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
@@ -81,25 +81,25 @@ namespace DApp
         //    }
         //    return new byte[] { 0x00 };
         //}
-        //static byte[] setSubOwner(byte[] nnshash,string subdomain, byte[] owner, BigInteger ttl)
-        //{
-        //    object[] obj = new object[4];
-        //    obj[0] = nnshash;
-        //    obj[1] = subdomain;
-        //    obj[2] = owner;
-        //    obj[3] = ttl;
-        //    var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
-        //    if (r.AsBigInteger() == 1)
-        //    {
-        //        var subhash = nameHashSub(nnshash, subdomain);
-        //        Storage.Put(Storage.CurrentContext, subhash, owner);
-        //        return new byte[] { 0x01 };
-        //    }
-        //    else
-        //    {
-        //        return new byte[] { 0x00 };
-        //    }
-        //}
+        static byte[] setSubOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
+        {
+            object[] obj = new object[4];
+            obj[0] = nnshash;
+            obj[1] = subdomain;
+            obj[2] = owner;
+            obj[3] = ttl;
+            var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
+            if (r.AsBigInteger() == 1)
+            {
+                //var subhash = nameHashSub(nnshash, subdomain);
+                //Storage.Put(Storage.CurrentContext, subhash, owner);
+                return new byte[] { 0x01 };
+            }
+            else
+            {
+                return new byte[] { 0x00 };
+            }
+        }
         //保密机制由register 确定
         //不用在其他阶段保密
         public static byte[] requestSubDomain(byte[] who, byte[] nnshash, string subdomain)
@@ -127,20 +127,15 @@ namespace DApp
 
             if (info.owner.Length == 0)//无人认领，直接分配
             {
-                ttl += blockday * domaindays;
-                return new byte[] { 0x01 };
+                ttl += secondperday * domaindays;
+                return setSubOwner(nnshash, subdomain, who, ttl);
             }
             else
             {
                 if(info.TTL<ttl)//過期域名
                 {
-                    ttl += blockday * domaindays;
-                    object[] obj = new object[4];
-                    obj[0] = nnshash;
-                    obj[1] = subdomain;
-                    obj[2] = who;//把所有權搶過來
-                    obj[3] = ttl;
-                    return new byte[] { 0x01 };
+                    ttl += secondperday * domaindays;
+                    return setSubOwner(nnshash, subdomain, who, ttl);
                 }
                 else //沒過期
                 {
@@ -149,13 +144,9 @@ namespace DApp
                         return new byte[] { 0x00 };//別人的域名
                     }
                     //自己的域名，續期
-                    ttl += blockday * domaindays;
-                    object[] obj = new object[4];
-                    obj[0] = nnshash;
-                    obj[1] = subdomain;
-                    obj[2] = who;
-                    obj[3] = ttl;
-                    return new byte[] { 0x01 };
+                    ttl += secondperday * domaindays;
+                    return setSubOwner(nnshash, subdomain, who, ttl);
+
                 }
 
                 //    var r = (byte[])rootCall("register_SetSubdomainOwner", obj);

@@ -32,7 +32,7 @@ namespace DApp
         //所有者可以设置自己域名的控制器
         //以后还应该设置联合所有权的机制，多个所有者，几人以上签名才可用
 
-        const int blockday = 4096;//粗略一天的块数
+        //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
         static readonly byte[] jumpContract = Helper.HexToBytes("62134ef8f4aadfa9cb5cba564cdd414a53ddfbdf");//注意 script_hash 是反序的
