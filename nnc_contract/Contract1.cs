@@ -94,26 +94,56 @@ namespace Nep5_Contract
         public static bool use(byte[] from, BigInteger value)
         {
             if (value <= 0) return false;
-            var indexcash = from.Concat(new byte[] { 0 });
-            var indexsaving = from.Concat(new byte[] { 1 });
 
-            BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
-            BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
-            var balance = from_value_cash + from_value_saving * factor;
+            var detailfrom = GetAccountDetail(from);
+            //var indexcash = from.Concat(new byte[] { 0 });
+            //var indexsaving = from.Concat(new byte[] { 1 });
+            //BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
+            //BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
+            var balance = detailfrom.cash + detailfrom.saving * factor;
+
             if (balance < value) return false;
-
-            if (from_value_cash >= value)//零钱就够扣了
+            if (detailfrom.cash >= value)//零钱就够扣了
             {
-                Storage.Put(Storage.CurrentContext, indexcash, from_value_cash - value);
+                detailfrom.cash = detailfrom.cash - value;
+                SetAccountDetail(from, detailfrom);
+                //Storage.Put(Storage.CurrentContext, indexcash, from_value_cash - value);
             }
             else//零钱不够扣
             {
                 var lastv = balance - value;
                 var bigN = lastv / (factor);
                 var smallN = lastv % (factor);
-                Storage.Put(Storage.CurrentContext, indexcash, smallN);
-                Storage.Put(Storage.CurrentContext, indexsaving, bigN);
+                detailfrom.cash = smallN;
+                detailfrom.saving = bigN;
+                SetAccountDetail(from, detailfrom);
+                //Storage.Put(Storage.CurrentContext, indexcash, smallN);
+                //Storage.Put(Storage.CurrentContext, indexsaving, bigN);
             }
+
+
+            //var indexcash = from.Concat(new byte[] { 0 });
+            //var indexsaving = from.Concat(new byte[] { 1 });
+
+
+
+            //BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
+            //BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
+            //var balance = from_value_cash + from_value_saving * factor;
+            //if (balance < value) return false;
+
+            //if (from_value_cash >= value)//零钱就够扣了
+            //{
+            //    Storage.Put(Storage.CurrentContext, indexcash, from_value_cash - value);
+            //}
+            //else//零钱不够扣
+            //{
+            //    var lastv = balance - value;
+            //    var bigN = lastv / (factor);
+            //    var smallN = lastv % (factor);
+            //    Storage.Put(Storage.CurrentContext, indexcash, smallN);
+            //    Storage.Put(Storage.CurrentContext, indexsaving, bigN);
+            //}
 
             byte[] data = Storage.Get(Storage.CurrentContext, "!pool");
             BigInteger v = Helper.AsBigInteger(data);
@@ -198,12 +228,13 @@ namespace Nep5_Contract
             if (data.Length == 0)
                 return 0;
 
-            var indexcashto = to.Concat(new byte[] { 0 });
-            var indexsavingto = to.Concat(new byte[] { 1 });
-            var indexsavingblockto = to.Concat(new byte[] { 2 });
-            BigInteger to_value_cash = Storage.Get(Storage.CurrentContext, indexcashto).AsBigInteger();
-            BigInteger to_value_saving = Storage.Get(Storage.CurrentContext, indexsavingto).AsBigInteger();
-            BigInteger to_value_savingblock = Storage.Get(Storage.CurrentContext, indexsavingblockto).AsBigInteger();
+            var toinfo = GetAccountDetail(to);
+            //var indexcashto = to.Concat(new byte[] { 0 });
+            //var indexsavingto = to.Concat(new byte[] { 1 });
+            //var indexsavingblockto = to.Concat(new byte[] { 2 });
+            //BigInteger to_value_cash = Storage.Get(Storage.CurrentContext, indexcashto).AsBigInteger();
+            //BigInteger to_value_saving = Storage.Get(Storage.CurrentContext, indexsavingto).AsBigInteger();
+            //BigInteger to_value_savingblock = Storage.Get(Storage.CurrentContext, indexsavingblockto).AsBigInteger();
 
             BigInteger lastBonusBlock = Helper.AsBigInteger(data);
             BigInteger addValue = 0;
@@ -217,9 +248,9 @@ namespace Nep5_Contract
                 var StartBlock = Storage.Get(Storage.CurrentContext, bStartBlock).AsBigInteger();
                 var BonusValue = Storage.Get(Storage.CurrentContext, bBonusValue).AsBigInteger();
                 var BonusCount = Storage.Get(Storage.CurrentContext, bBonusCount).AsBigInteger();
-                if (to_value_savingblock < StartBlock)//有领奖资格
+                if (toinfo.savingblock < StartBlock)//有领奖资格
                 {
-                    var cangot = to_value_saving * BonusValue;//要领走多少
+                    var cangot = toinfo.saving * BonusValue;//要领走多少
                     addValue += cangot;
                     Storage.Put(Storage.CurrentContext, bBonusCount, BonusCount - cangot);
                 }
@@ -231,15 +262,19 @@ namespace Nep5_Contract
                     break;
             }
             //领奖写入
-            BigInteger balanceto = to_value_saving * factor + to_value_cash;
+            BigInteger balanceto = toinfo.saving * factor + toinfo.cash;
             {
                 var lastv = balanceto + addValue;
                 var bigN = lastv / (factor);
                 var smallN = lastv % (factor);
-                Storage.Put(Storage.CurrentContext, indexcashto, smallN);
-                Storage.Put(Storage.CurrentContext, indexsavingto, bigN);
-                BigInteger block = (Blockchain.GetHeight());
-                Storage.Put(Storage.CurrentContext, indexsavingblockto, block);
+                toinfo.cash = smallN;
+                toinfo.saving = bigN;
+                toinfo.savingblock = Blockchain.GetHeight();
+                SetAccountDetail(to, toinfo);
+                //Storage.Put(Storage.CurrentContext, indexcashto, smallN);
+                //Storage.Put(Storage.CurrentContext, indexsavingto, bigN);
+                //BigInteger block = (Blockchain.GetHeight());
+                //Storage.Put(Storage.CurrentContext, indexsavingblockto, block);
             }
             return 0;
         }
@@ -270,28 +305,85 @@ namespace Nep5_Contract
         {
             return 8;
         }
+        public class AccountDetail
+        {
+            public BigInteger cash;//现金不能领奖
+            public BigInteger saving;//存款可以另据
+            public BigInteger savingblock;//存款时间
+        }
+        private static AccountDetail GetAccountDetail(byte[] address)
+        {
+            var key = new byte[] { 0x11 }.Concat(address);
+            var data = Storage.Get(Storage.CurrentContext, key);
+
+            AccountDetail detail = new AccountDetail();
+            if (data.Length == 0)
+            {
+                detail.cash = 0;
+                detail.saving = 0;
+                detail.savingblock = 0;
+                return detail;
+            }
+
+            int seek = 0;
+            int len = 0;
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            detail.cash = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            detail.saving = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            detail.savingblock = data.Range(seek, len).AsBigInteger();
+            seek += len;
+            return detail;
+
+        }
+        private static void SetAccountDetail(byte[] address, AccountDetail detail)
+        {
+            var key = new byte[] { 0x11 }.Concat(address);
+            byte[] outinfo = byteLen(detail.cash.AsByteArray().Length).Concat(detail.cash.AsByteArray());
+            outinfo = outinfo.Concat(byteLen(detail.saving.AsByteArray().Length)).Concat(detail.saving.AsByteArray());
+            outinfo = outinfo.Concat(byteLen(detail.saving.AsByteArray().Length)).Concat(detail.saving.AsByteArray());
+
+            Storage.Put(Storage.CurrentContext, key, outinfo);
+        }
+
         public static BigInteger balanceOf(byte[] address)
         {
-            var indexcash = address.Concat(new byte[] { 0 });
-            var indexsaving = address.Concat(new byte[] { 1 });
-            BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
-            BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
-            var balance = from_value_cash + from_value_saving * factor;
+            AccountDetail detail = GetAccountDetail(address);
+            var balance = detail.cash + detail.saving * factor;
             return balance;
+            //from_value_cash + from_value_saving * factor;
+
+            //var indexcash = address.Concat(new byte[] { 0 });
+            //var indexsaving = address.Concat(new byte[] { 1 });
+            //BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
+            //BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
+            //var balance = from_value_cash + from_value_saving * factor;
+            //return balance;
         }
         public static BigInteger[] balanceOfDetail(byte[] address)
         {
-            var indexcash = address.Concat(new byte[] { 0 });
-            var indexsaving = address.Concat(new byte[] { 1 });
-            var indexsavingblock = address.Concat(new byte[] { 2 });
-            BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
-            BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
-            BigInteger from_value_savingblock = Storage.Get(Storage.CurrentContext, indexsavingblock).AsBigInteger();
-            var balance = from_value_cash + from_value_saving * factor;
+            AccountDetail detail = GetAccountDetail(address);
+            var balance = detail.cash + detail.saving * factor;
+
+            //var indexcash = address.Concat(new byte[] { 0 });
+            //var indexsaving = address.Concat(new byte[] { 1 });
+            //var indexsavingblock = address.Concat(new byte[] { 2 });
+            //BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
+            //BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
+            //BigInteger from_value_savingblock = Storage.Get(Storage.CurrentContext, indexsavingblock).AsBigInteger();
+            //var balance = from_value_cash + from_value_saving * factor;
             BigInteger[] ret = new BigInteger[4];
-            ret[0] = from_value_cash;
-            ret[1] = from_value_saving;
-            ret[2] = from_value_savingblock;
+            ret[0] = detail.cash;
+            ret[1] = detail.saving;
+            ret[2] = detail.savingblock;
             ret[3] = balance;
             return ret;
         }
@@ -300,45 +392,59 @@ namespace Nep5_Contract
             if (value <= 0) return false;
             if (from == to) return true;
 
-            var indexcash = from.Concat(new byte[] { 0 });
-            var indexsaving = from.Concat(new byte[] { 1 });
-            BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
-            BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
-            var balance = from_value_cash + from_value_saving * factor;
+            var detailfrom = GetAccountDetail(from);
+            //var indexcash = from.Concat(new byte[] { 0 });
+            //var indexsaving = from.Concat(new byte[] { 1 });
+            //BigInteger from_value_cash = Storage.Get(Storage.CurrentContext, indexcash).AsBigInteger();
+            //BigInteger from_value_saving = Storage.Get(Storage.CurrentContext, indexsaving).AsBigInteger();
+            var balance = detailfrom.cash + detailfrom.saving * factor;
 
             if (balance < value) return false;
-            if (from_value_cash >= value)//零钱就够扣了
+            if (detailfrom.cash >= value)//零钱就够扣了
             {
-                Storage.Put(Storage.CurrentContext, indexcash, from_value_cash - value);
+                detailfrom.cash = detailfrom.cash - value;
+                SetAccountDetail(from, detailfrom);
+                //Storage.Put(Storage.CurrentContext, indexcash, from_value_cash - value);
             }
             else//零钱不够扣
             {
                 var lastv = balance - value;
                 var bigN = lastv / (factor);
                 var smallN = lastv % (factor);
-                Storage.Put(Storage.CurrentContext, indexcash, smallN);
-                Storage.Put(Storage.CurrentContext, indexsaving, bigN);
+                detailfrom.cash = smallN;
+                detailfrom.saving = bigN;
+                SetAccountDetail(from, detailfrom);
+                //Storage.Put(Storage.CurrentContext, indexcash, smallN);
+                //Storage.Put(Storage.CurrentContext, indexsaving, bigN);
             }
 
-            var indexcashto = to.Concat(new byte[] { 0 });
-            var indexsavingto = to.Concat(new byte[] { 1 });
-            var indexsavingblockto = to.Concat(new byte[] { 2 });
-            BigInteger to_value_cash = Storage.Get(Storage.CurrentContext, indexcashto).AsBigInteger();
-            BigInteger to_value_saving = Storage.Get(Storage.CurrentContext, indexsavingto).AsBigInteger();
-            var balanceto = to_value_cash + to_value_saving * factor;
-            if (to_value_saving == 0)//无存款账户，帮他存了
+
+            var detailto = GetAccountDetail(to);
+            //var indexcashto = to.Concat(new byte[] { 0 });
+            //var indexsavingto = to.Concat(new byte[] { 1 });
+            //var indexsavingblockto = to.Concat(new byte[] { 2 });
+            //BigInteger to_value_cash = Storage.Get(Storage.CurrentContext, indexcashto).AsBigInteger();
+            //BigInteger to_value_saving = Storage.Get(Storage.CurrentContext, indexsavingto).AsBigInteger();
+            var balanceto = detailto.cash + detailto.saving * factor;
+            if (detailto.saving == 0)//无存款账户，帮他存了
             {
                 var lastv = balanceto + value;
                 var bigN = lastv / (factor);
                 var smallN = lastv % (factor);
-                Storage.Put(Storage.CurrentContext, indexcashto, smallN);
-                Storage.Put(Storage.CurrentContext, indexsavingto, bigN);
-                BigInteger block = (Blockchain.GetHeight());
-                Storage.Put(Storage.CurrentContext, indexsavingblockto, block);
+                detailto.saving = bigN;
+                detailto.cash = smallN;
+                detailto.savingblock = Blockchain.GetHeight();
+                //Storage.Put(Storage.CurrentContext, indexcashto, smallN);
+                //Storage.Put(Storage.CurrentContext, indexsavingto, bigN);
+                //BigInteger block = (Blockchain.GetHeight());
+                //Storage.Put(Storage.CurrentContext, indexsavingblockto, block);
+                SetAccountDetail(to, detailto);
             }
             else
             {
-                Storage.Put(Storage.CurrentContext, indexcashto, to_value_cash + value);
+                detailto.cash = detailto.cash + value;
+                SetAccountDetail(to, detailto);
+                //Storage.Put(Storage.CurrentContext, indexcashto, to_value_cash + value);
             }
 
             //记录交易信息
@@ -377,17 +483,17 @@ namespace Nep5_Contract
             //老式实现方法
             TransferInfo info = new TransferInfo();
             int seek = 0;
-            var fromlen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            var fromlen = (int)v.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.from = v.AsString().Substring(seek, fromlen).AsByteArray();
+            info.from = v.Range(seek, fromlen);
             seek += fromlen;
-            var tolen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            var tolen = (int)v.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.to = v.AsString().Substring(seek, tolen).AsByteArray();
+            info.to = v.Range(seek, tolen);
             seek += tolen;
-            var valuelen = (int)v.AsString().Substring(seek, 2).AsByteArray().AsBigInteger();
+            var valuelen = (int)v.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.value = v.AsString().Substring(seek, valuelen).AsByteArray().AsBigInteger();
+            info.value = v.Range(seek, valuelen).AsBigInteger();
             return info;
 
             //新式实现方法只要一行
@@ -469,14 +575,19 @@ namespace Nep5_Contract
 
                 if (method == "deploy")//fix count
                 {
-                    if (args.Length != 1) return false;
+                    //if (args.Length != 1) return false;
                     if (!Runtime.CheckWitness(SuperAdmin)) return false;
                     byte[] total_supply = Storage.Get(Storage.CurrentContext, "totalSupply");
                     if (total_supply.Length != 0) return false;
 
-                    var indexcashto = SuperAdmin.Concat(new byte[] { 0 });
+                    var info = new AccountDetail();
+                    info.cash = totalCoin;
+                    info.saving = 0;
+                    info.savingblock = 0;
+                    SetAccountDetail(SuperAdmin, info);
+                    //var indexcashto = SuperAdmin.Concat(new byte[] { 0 });
 
-                    Storage.Put(Storage.CurrentContext, indexcashto, totalCoin);
+                    //Storage.Put(Storage.CurrentContext, indexcashto, totalCoin);
                     Storage.Put(Storage.CurrentContext, "totalSupply", totalCoin);
                     Transferred(null, SuperAdmin, totalCoin);
                 }

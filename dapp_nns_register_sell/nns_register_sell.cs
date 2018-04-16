@@ -93,7 +93,7 @@ namespace DApp
         //返回我在拍賣合約裏面存的nnc余額
         public static BigInteger balanceOf(byte[] who)
         {
-            var key = who.Concat(new byte[] { 0x11 });
+            var key = new byte[] { 0x11 }.Concat(who);
             return Storage.Get(Storage.CurrentContext, key).AsBigInteger();
         }
         public static bool setMoneyIn(byte[] txid)
@@ -197,7 +197,7 @@ namespace DApp
             if (method == "getmoneyback")//把多餘的錢取回
             {
                 byte[] who = (byte[])args[0];
-                BigInteger myprice = (BigInteger)args[2];
+                BigInteger myprice = (BigInteger)args[1];
                 return getMoneyBack(who, myprice);
             }
             if (method == "setmoneyin")//如果用普通方式轉了nep5進來，也不要緊
