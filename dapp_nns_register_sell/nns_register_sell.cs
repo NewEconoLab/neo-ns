@@ -23,7 +23,7 @@ namespace DApp
         static extern object rootCall(string method, object[] arr);
 
         //nnc合约地址
-        [Appcall("fe3c9a03242e90423093e1733b7640c847883205")]
+        [Appcall("bab964febd82c9629cc583596975f51811f25f47")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -104,7 +104,7 @@ namespace DApp
             if (tx.to.AsBigInteger() == ExecutionEngine.ExecutingScriptHash.AsBigInteger())
             {
                 //存錢
-                var key = new byte[] { 0x11 }.Concat(tx.to);
+                var key = new byte[] { 0x11 }.Concat(tx.from);
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
                 money += tx.value;
                 Storage.Put(Storage.CurrentContext, key, money);
@@ -125,7 +125,7 @@ namespace DApp
             trans[0] = ExecutionEngine.ExecutingScriptHash;
             trans[1] = who;
             trans[2] = count;
-            bool succ = (bool)nncCall("transer", trans);
+            bool succ = (bool)nncCall("transfer_app", trans);
             if (succ)
             {
                 money -= count;

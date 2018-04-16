@@ -19,7 +19,7 @@ namespace DApp
 
         public static object Main(string method, object[] args)
         {
-            string magicstr = "for nns test";
+            string magicstr = "for nns test 002";
             if (method == "_setTarget")
             {
                 if (Runtime.CheckWitness(superAdmin))
