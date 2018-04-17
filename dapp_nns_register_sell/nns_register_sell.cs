@@ -53,18 +53,383 @@ namespace DApp
         }
 
         #endregion
-
-        public enum DomainUseStatus
+        private static byte[] byteLen(BigInteger n)
+        {
+            byte[] v = n.AsByteArray();
+            if (v.Length > 2)
+                throw new Exception("not support");
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            if (v.Length < 2)
+                v = v.Concat(new byte[1] { 0x00 });
+            return v;
+        }
+        public enum DomainUseState
         {
             Empty,//未注冊
             InUse,//正常使用
-            TTLFall,//TTL已過期
+            TTLFail,//TTL已過期
         }
-        public class DomainStatus
+
+        public class OwnerInfo
         {
-            public DomainUseStatus status;
-            public byte[] lastsellingID;//上一次拍賣的拍賣ID
+            public byte[] owner;//如果长度=0 表示没有初始化
+            public byte[] register;
+            public byte[] resolver;
+            public BigInteger TTL;
+            public byte[] parentOwner;//当此域名注册时，他爹的所有者，记录这个，则可以检测域名的爹变了
         }
+        private static OwnerInfo getOwnerInfo(byte[] fullhash)
+        {
+            object[] _param = new object[1];
+            _param[0] = fullhash;
+            var info = rootCall("getOwnerInfo", _param) as OwnerInfo;
+            return info;
+        }
+        public static DomainUseState getDomainUseState(byte[] fullhash)
+        {
+            var info = getOwnerInfo(fullhash);
+            if (info.owner.Length == 0)
+                return DomainUseState.Empty;
+            var time = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            if (time <= info.TTL || info.TTL == 0)//ttl=0 是根域名
+            {
+                return DomainUseState.InUse;
+            }
+            else
+            {
+                return DomainUseState.TTLFail;
+            }
+        }
+
+        public enum SellingStep
+        {
+            NotSelling,
+            SellingStepFix01,//第一阶段0~2天
+            SellingStepFix02,//第二阶段第三天
+            SellingStepRan,//随机阶段
+            EndSelling,//结束销售
+        }
+
+        //dict<domainhash,lastsellid> //查看域名最终的拍卖id
+        public class SellingState
+        {
+            public byte[] id;
+            //public SellingStep step;//销售阶段 这是算出来的
+            public byte[] parenthash;//拍卖内容
+            public string domain;//拍卖内容
+
+            public BigInteger startBlockSelling;//开始销售块
+            //public int StartTime 算出
+            //step2time //算出
+            //rantime //算出
+            //endtime //算出
+            //最终领取时间 算出，如果超出最终领取时间没有领域名，就不让领了
+            public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人，记录他出价的块
+            //从这个块开始，往后的每一个块出价都有一定几率直接结束
+            public BigInteger endBlock;//结束块
+
+            public BigInteger maxPrice;//最高出价
+            public byte[] maxBuyer;//最大出价者
+            public BigInteger lastBlock;//最后出价块
+            public BigInteger gotDomain;//域名是否已经取走
+        }
+        public static SellingState getSellingStateByTXID(byte[] txid)
+        {
+            var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(txid));
+            SellingState state = new SellingState();
+            state.id = txid;
+            int seek = 0;
+            int len = 0;
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.parenthash = data.Range(seek, len);
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.domain = data.Range(seek, len).AsString();
+            seek += len;
+
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.startBlockSelling = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.startBlockRan = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.endBlock = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.maxPrice = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.maxBuyer = data.Range(seek, len);
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.lastBlock = data.Range(seek, len).AsBigInteger();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.gotDomain = data.Range(seek, len).AsBigInteger();
+            seek += len;
+            return state;
+        }
+        public static SellingState getSellingStateByFullhash(byte[] fullhash)
+        {
+            //需要保存每一笔拍卖记录,因为过去拍卖者的资金都要锁定在这里
+            byte[] id = Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(fullhash));
+            if (id.Length == 0)//没在销售中
+            {
+                SellingState _state = new SellingState();
+                _state.id = new byte[0];
+                _state.startBlockSelling = 0;
+                return _state;
+            }
+            return getSellingStateByTXID(id);
+        }
+        private static void saveSellingState(SellingState state)
+        {
+            var fullhash = nameHashSub(state.parenthash, state.domain);
+            byte[] _id = Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(fullhash));
+            if (_id.AsBigInteger() != state.id.AsBigInteger())//没存过ID
+            {
+                Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(fullhash), state.id);
+            }
+
+            var key = new byte[] { 0x02 }.Concat(state.id);
+            var value = byteLen(state.parenthash.Length).Concat(state.parenthash);
+            value = value.Concat(byteLen(state.domain.AsByteArray().Length)).Concat(state.domain.AsByteArray());
+            value = value.Concat(byteLen(state.startBlockSelling.AsByteArray().Length)).Concat(state.startBlockSelling.AsByteArray());
+            value = value.Concat(byteLen(state.startBlockRan.AsByteArray().Length)).Concat(state.startBlockRan.AsByteArray());
+            value = value.Concat(byteLen(state.endBlock.AsByteArray().Length)).Concat(state.endBlock.AsByteArray());
+            value = value.Concat(byteLen(state.maxPrice.AsByteArray().Length)).Concat(state.maxPrice.AsByteArray());
+            value = value.Concat(byteLen(state.maxBuyer.Length)).Concat(state.maxBuyer);
+            value = value.Concat(byteLen(state.lastBlock.AsByteArray().Length)).Concat(state.lastBlock.AsByteArray());
+            value = value.Concat(byteLen(state.gotDomain.AsByteArray().Length)).Concat(state.gotDomain.AsByteArray());
+
+            Storage.Put(Storage.CurrentContext, key, value);
+
+        }
+
+        public static bool wantBuy(byte[] hash, string domainname)
+        {
+            //先看这个域名归我管不
+            if (getOwnerInfo(hash).register.AsBigInteger() != ExecutionEngine.ExecutingScriptHash.AsBigInteger())
+                return false;
+
+            //再看看域名能不能拍卖
+            var fullhash = nameHashSub(hash, domainname);
+            var inuse = getDomainUseState(fullhash);
+            if (inuse == DomainUseState.InUse)
+            {
+                return false;
+            }
+
+            //再看看有没有在拍卖
+            var selling = getSellingStateByFullhash(fullhash);
+            if (selling.startBlockSelling > 0)//已经在拍卖中了
+            {
+                if (testEnd(selling) == false)//拍卖未结束不准
+                    return false;
+
+                if (selling.maxBuyer.Length > 0)//未流拍的拍卖，一年内不得再拍
+                {
+                    var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+                    var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+                    if ((nowtime - starttime) < blockday * 365)//一个拍卖7天以内是不能再拍的
+                    {
+                        return false;
+                    }
+                }
+
+            }
+
+            SellingState sell = new SellingState();
+            sell.startBlockSelling = Blockchain.GetHeight();//开始拍卖了
+            sell.startBlockRan = 0;//随机块现在还不能确定
+            sell.endBlock = 0;
+            sell.maxPrice = 0;
+            sell.maxBuyer = new byte[0];
+            sell.lastBlock = 0;
+            sell.parenthash = hash;
+            sell.domain = domainname;
+            var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+            sell.id = txid;
+            saveSellingState(selling);
+
+            return true;
+        }
+        public static BigInteger balanceOfSelling(byte[] who, byte[] txid)
+        {
+            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            return Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+        }
+        public static bool addPrice(byte[] who, byte[] txid, BigInteger value)
+        {
+            var money = balanceOf(who);
+            if (money < value)//钱不够
+                return false;
+
+            var selling = getSellingStateByTXID(txid);
+            if (selling.startBlockSelling == 0 || selling.endBlock > 0)//没拍卖中了
+            {
+                return false;
+            }
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            var step2time = starttime + blockday * 2;
+            var steprantime = starttime + blockday * 3;
+            var endtime = starttime + blockday * 5;
+            if (nowtime > endtime)//太久了，不能出价
+            {
+                return false;
+            }
+            if (selling.gotDomain == 1)//拍卖已经结束，域名已经取走，不能出价
+            {
+                return false;
+            }
+            if (nowtime < steprantime)//随机期以前，随便出价
+            {
+            }
+            else //随机期怎么办，有可能这里就直接被结束了
+            {
+                var b = testEnd(selling);//测试能不能结束
+                if (b)
+                    return false;
+                //没结束就可以出价
+            }
+
+
+            //转移资金
+            money -= value;
+            var key = new byte[] { 0x11 }.Concat(who);
+            Storage.Put(Storage.CurrentContext, key, money);
+
+            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+            moneyfordomain += value;
+            Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
+
+            if (moneyfordomain > selling.maxPrice)
+            {//高于最高出价了,更新我为最高出价者
+                selling.maxPrice = moneyfordomain;
+                selling.maxBuyer = who;
+                selling.lastBlock = Blockchain.GetHeight();
+                saveSellingState(selling);
+            }
+            return true;
+        }
+        private static bool testEnd(SellingState selling)
+        {
+            if (selling.startBlockSelling == 0)//就没开始过
+                return false;
+            if (selling.endBlock > 0)//已经结束了
+                return false;
+
+
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            var step2time = starttime + blockday * 2;
+            var steprantime = starttime + blockday * 3;
+            var endtime = starttime + blockday * 5;
+
+            if (nowtime < steprantime)//随机期都没到，肯定没结束
+                return false;
+
+            if (nowtime > endtime)//毫无悬念结束了
+            {
+                selling.endBlock = Blockchain.GetHeight();
+                saveSellingState(selling);
+                return true;
+            }
+
+            var lasttime = Blockchain.GetHeader((uint)selling.lastBlock).Timestamp;
+            if (lasttime < step2time)//阶段2没出过价
+            {
+                selling.endBlock = Blockchain.GetHeight();
+                saveSellingState(selling);
+                return true;
+            }
+
+            //如果发现随机期都没进，先进一下
+            if (selling.startBlockRan == 0)
+            {
+                selling.startBlockRan = Blockchain.GetHeight();
+                saveSellingState(selling);
+            }
+
+            ulong endv = 0;
+            for (var i = selling.startBlockRan; i < Blockchain.GetHeight(); i += 240)//随机结束，那就用4800
+            {
+                var blockheader = Blockchain.GetHeader((uint)i);
+                endv += (blockheader.ConsensusData % 4800);
+                if(endv>4800)
+                {
+                    selling.endBlock = i;//突然死亡，无法出价了
+                    saveSellingState(selling);
+                    return true;
+                }
+            }
+            
+            //走到这里都没死，那就允许你出价，这里是随机期
+            return false;
+        }
+        public static bool endSelling(byte[] who, byte[] txid)
+        {
+            var selling = getSellingStateByTXID(txid);
+            bool b = testEnd(selling);
+            if (b == false)
+                return false;
+
+            //结束了，把我的钱取回来
+            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+            Storage.Delete(Storage.CurrentContext, pricekey);
+
+            var money = balanceOf(who);
+            money += moneyfordomain;
+            var key = new byte[] { 0x11 }.Concat(who);
+            Storage.Put(Storage.CurrentContext, key, money);
+
+            //最大出价人是我，域名顺便拿走
+            if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
+            {
+                object[] obj = new object[4];
+                obj[0] = selling.parenthash;
+                obj[1] = selling.domain;
+                obj[2] = who;
+                var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+
+                obj[3] = starttime + blockday * 365;
+                var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
+                if (r.AsBigInteger() == 1)
+                {
+                    selling.gotDomain = 1;
+                    saveSellingState(selling);
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         #region 資金管理
         //dict<0x11+who,bigint money> //money字典
         //dict<0x12+txid,0 or 1> //交易是否已充值字典
@@ -154,40 +519,55 @@ namespace DApp
             //    byte[] nnshash = (byte[])args[0];
             //    string domain = (string)args[1];
             //}
-
-            if (method == "getdomainstate")//查看域名狀態
+            if (method == "getDomainUseState")//查看域名狀態
             {
-                //0x00 未登記
-                //0x01 正常
-                //0x02 已过期
-                
+                return getDomainUseState((byte[])args[0]);
             }
-            if (method == "getsellingstate")//查看拍賣狀態
-            {//0x10 0x11 0x12 0x20
-
-            }
-            if (method == "wantbuy")//申請開標 (00,02,20)=>(10)
+            if (method == "getSellingStateByFullhash")//查看域名狀態
             {
-                byte[] who = (byte[])args[0];
-
-                byte[] nnshash = (byte[])args[1];
-                string domain = (string)args[2];
+                return getSellingStateByFullhash((byte[])args[0]);
             }
-            if (method == "addprice")//出價&加價 (10,11,12)=>不改變狀態
+            if (method == "getSellingStateByTXID")//查看域名狀態
+            {
+                return getSellingStateByTXID((byte[])args[0]);
+            }
+            if (method == "wantBuy")//申請開標 (00,02,20)=>(10)
             {
                 byte[] who = (byte[])args[0];
+                if (Runtime.CheckWitness(who) == false)
+                    return false;
                 byte[] nnshash = (byte[])args[1];
                 string domain = (string)args[2];
+                return wantBuy(nnshash, domain);
+            }
+            if (method == "addPrice")//出價&加價 (10,11,12)=>不改變狀態
+            {
+                byte[] who = (byte[])args[0];
+                if (Runtime.CheckWitness(who) == false)
+                    return false;
+
+                byte[] txid = (byte[])args[1];
                 BigInteger myprice = (BigInteger)args[2];
-                byte[] txid = (byte[])args[3];//提供一個txid，查這筆txid 的nep5入賬證明
                 //如果有就充值到我的戶頭
                 //如果戶頭的錢夠扣，就參與投標
+                return addPrice(who, txid, myprice);
             }
-            if (method == "endpaimai")//限制狀態20
+            if (method == "balanceOfSelling")
             {
-                byte[] txid = (byte[])args[0];//拍賣id
+                byte[] who = (byte[])args[0];
+                byte[] txid = (byte[])args[1];//拍賣id
+                return balanceOfSelling(who, txid);
+            }
+            if (method == "endSelling")//限制狀態20
+            {
+                byte[] who = (byte[])args[0];
+                if (Runtime.CheckWitness(who) == false)
+                    return false;
+
+                byte[] txid = (byte[])args[1];//拍賣id
                 //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
                 //如果中標，拍賣金全扣，給我域名所有權
+                return endSelling(who, txid);
             }
             #region 资金管理
             if (method == "balanceOf")

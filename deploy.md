@@ -33,3 +33,6 @@ nns_register_fifo 先到先得注册器
 nns_resolver 标准解析器
 0xed1441d9dc0081d7c0a873d4c6990c9e3da5b978
 需要存储区 500gas
+
+test 域名对应hash
+9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
