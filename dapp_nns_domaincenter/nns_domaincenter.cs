@@ -562,7 +562,7 @@ namespace DApp
             }
             if (method == "getNameInfo")
             {
-                return getOwnerInfo((byte[])args[0]);
+                return getNameInfo((byte[])args[0]);
             }
             if (method == "nameHash")
             {
