@@ -11,7 +11,7 @@ namespace DApp
         //静态解析器实现
         //dict《domainhash+protocol,data>
         //dict<"调用nns查询权限 只有是"
-        [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
+        [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
 
         #region 域名转hash算法

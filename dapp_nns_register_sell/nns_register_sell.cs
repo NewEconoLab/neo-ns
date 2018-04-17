@@ -19,7 +19,7 @@ namespace DApp
         const int domaindays = 1;//租一次给几天
 
         //域名中心合约地址
-        [Appcall("dffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362")]
+        [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
 
         //nnc合约地址
