@@ -377,14 +377,14 @@ namespace DApp
             {
                 var blockheader = Blockchain.GetHeader((uint)i);
                 endv += (blockheader.ConsensusData % 4800);
-                if(endv>4800)
+                if (endv > 4800)
                 {
                     selling.endBlock = i;//突然死亡，无法出价了
                     saveSellingState(selling);
                     return true;
                 }
             }
-            
+
             //走到这里都没死，那就允许你出价，这里是随机期
             return false;
         }
@@ -394,20 +394,31 @@ namespace DApp
             bool b = testEnd(selling);
             if (b == false)
                 return false;
+            if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
+            {//最大出价人不是我
+                //结束了，把我的钱取回来
+                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+                var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+                Storage.Delete(Storage.CurrentContext, pricekey);
 
-            //结束了，把我的钱取回来
-            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
-            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-            Storage.Delete(Storage.CurrentContext, pricekey);
-
-            var money = balanceOf(who);
-            money += moneyfordomain;
-            var key = new byte[] { 0x11 }.Concat(who);
-            Storage.Put(Storage.CurrentContext, key, money);
-
-            //最大出价人是我，域名顺便拿走
-            if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
+                var money = balanceOf(who);
+                money += (moneyfordomain * 9 / 10);//退9折
+                var key = new byte[] { 0x11 }.Concat(who);
+                Storage.Put(Storage.CurrentContext, key, money);
+            }
+            else
             {
+                //结束了，把我的钱扣了
+                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+                var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+                Storage.Delete(Storage.CurrentContext, pricekey);
+
+                //var money = balanceOf(who);
+                //money += moneyfordomain;
+                //var key = new byte[] { 0x11 }.Concat(who);
+                //Storage.Put(Storage.CurrentContext, key, money);
+
+                //把我的域名拿回来
                 object[] obj = new object[4];
                 obj[0] = selling.parenthash;
                 obj[1] = selling.domain;
@@ -429,7 +440,27 @@ namespace DApp
             }
             return true;
         }
-
+        public static bool renewDomain(byte[] who, byte[] parenthash, string domain)
+        {
+            byte[] fullhash = nameHashSub(parenthash, domain);
+            var info = getOwnerInfo(fullhash);
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            if (info.owner.AsBigInteger() != who.AsBigInteger())
+                return false;
+            if (info.TTL > nowtime)
+                return false;
+            if ((nowtime - info.TTL) < blockday * 30)//30天内 可以续约
+            {
+                object[] obj = new object[4];
+                obj[0] = parenthash;
+                obj[1] = domain;
+                obj[2] = who;
+                obj[3] = info.TTL + blockday * 365;
+                var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
+                return r.AsBigInteger() == 1;
+            }
+            return false;
+        }
         #region 資金管理
         //dict<0x11+who,bigint money> //money字典
         //dict<0x12+txid,0 or 1> //交易是否已充值字典
@@ -552,7 +583,7 @@ namespace DApp
                 //如果戶頭的錢夠扣，就參與投標
                 return addPrice(who, txid, myprice);
             }
-            if (method == "balanceOfSelling")
+            if (method == "balanceOfSelling")//看我投标的数额
             {
                 byte[] who = (byte[])args[0];
                 byte[] txid = (byte[])args[1];//拍賣id
@@ -568,6 +599,15 @@ namespace DApp
                 //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
                 //如果中標，拍賣金全扣，給我域名所有權
                 return endSelling(who, txid);
+            }
+            if (method == "renewDomain")//续约域名
+            {
+                byte[] who = (byte[])args[0];
+                if (Runtime.CheckWitness(who) == false)
+                    return false;
+                byte[] nnshash = (byte[])args[1];
+                string domain = (string)args[2];
+                return renewDomain(who, nnshash, domain);
             }
             #region 资金管理
             if (method == "balanceOf")
