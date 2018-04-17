@@ -138,29 +138,29 @@ namespace DApp
         #endregion
         public static object Main(string method, object[] args)
         {
-            //请求者调用
-            //不能這樣暴力開了
-            //if (method == "requestSubDomain")
-            //    return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
-            if (method == "getdomainRegisterStatus")
-            {//看域名狀態
-                //0x00未登記 可以申請開標
-                //0x01使用中
-                //0x02已過期 可以申請開標
-                //0x10開標階段01 ，自由競價，固定時間
-                //0x11開標階段02 ，自由競價，固定時間如果這個階段無人出價直接階段
-                //0x12開標階段03 ，自由競價，時間不確定隨時結束
-                //0x20投標結束，有人中標則可將狀態改回01，無人中標則可直接申請開標，轉爲10
-                byte[] nnshash = (byte[])args[0];
-                string domain = (string)args[1];
-            }
+            ////请求者调用
+            ////不能這樣暴力開了
+            ////if (method == "requestSubDomain")
+            ////    return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
+            //if (method == "getdomainRegisterStatus")
+            //{//看域名狀態
+            //    //0x00未登記 可以申請開標
+            //    //0x01使用中
+            //    //0x02已過期 可以申請開標
+            //    //0x10開標階段01 ，自由競價，固定時間
+            //    //0x11開標階段02 ，自由競價，固定時間如果這個階段無人出價直接階段
+            //    //0x12開標階段03 ，自由競價，時間不確定隨時結束
+            //    //0x20投標結束，有人中標則可將狀態改回01，無人中標則可直接申請開標，轉爲10
+            //    byte[] nnshash = (byte[])args[0];
+            //    string domain = (string)args[1];
+            //}
 
             if (method == "getdomainstate")//查看域名狀態
             {
-                //0x00 為登記
-                //0x01
-                //0x02 
-                //0x03
+                //0x00 未登記
+                //0x01 正常
+                //0x02 已过期
+                
             }
             if (method == "getsellingstate")//查看拍賣狀態
             {//0x10 0x11 0x12 0x20
@@ -189,6 +189,7 @@ namespace DApp
                 //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
                 //如果中標，拍賣金全扣，給我域名所有權
             }
+            #region 资金管理
             if (method == "balanceOf")
             {
                 byte[] who = (byte[])args[0];
@@ -205,6 +206,7 @@ namespace DApp
                 byte[] txid = (byte[])args[0];//提供一個txid，查這筆txid 的nep5入賬證明
                 return setMoneyIn(txid);
             }
+            #endregion
             return new byte[] { 0 };
         }
     }
