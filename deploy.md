@@ -1,0 +1,22 @@
+
+
+NNS合约部署关系说明
+
+1.先部署NNS_DomainCenter_Jump 这是跳板合约，他不会经常升级
+部署要求Nep4 storage
+
+当前hash 0x954f285a93eed7b4aed9396a7806a5812f1a5950
+对应地址 AP6iSnCvbSSPEo15hEW296EX9XhLnuzwUi
+
+然后调用他的 _setTarget(hash) 指向一个NNS_DomainCenter
+则所有对NNS_DomainCenter的调用都可通过跳板进行
+
+
+2.然后部署NNS_DomainCenter合约
+
+需要修改DomainCenter合约的jumpcontract变量指向跳板合约，并不是任意合约都能跳
+
+部署要求nep4 storage
+
+当前hash 0x2172f8d5b17c2d45fa3ff58dee8e8a4c3f51ef72
+对应地址 ASFbNRsA4MyzwwNzqu2RGLxXWHvQKeY6D6

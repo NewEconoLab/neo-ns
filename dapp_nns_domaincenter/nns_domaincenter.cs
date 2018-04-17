@@ -35,8 +35,9 @@ namespace DApp
         //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.HexToBytes("62134ef8f4aadfa9cb5cba564cdd414a53ddfbdf");//注意 script_hash 是反序的
-                                                                                                            //跳板合约为0xdffbdd534a41dd4c56ba5ccba9dfaaf4f84e1362
+        static readonly byte[] jumpContract = Helper.ToScriptHash("AP6iSnCvbSSPEo15hEW296EX9XhLnuzwUi");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x954f285a93eed7b4aed9396a7806a5812f1a5950
+                                                                                                        //地址AP6iSnCvbSSPEo15hEW296EX9XhLnuzwUi
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
@@ -551,6 +552,10 @@ namespace DApp
 
 
             #region 通用功能,不需要权限验证
+            if (method == "name")
+            {
+                return "NNS DomainCenter";
+            }
             if (method == "getDomain")
             {
                 var hash = (byte[])args[0];
