@@ -402,9 +402,19 @@ namespace DApp
                 Storage.Delete(Storage.CurrentContext, pricekey);
 
                 var money = balanceOf(who);
-                money += (moneyfordomain * 9 / 10);//退9折
+
+                var use = moneyfordomain / 10;
+
+                money += (moneyfordomain - use);//退9折
                 var key = new byte[] { 0x11 }.Concat(who);
                 Storage.Put(Storage.CurrentContext, key, money);
+
+
+                //把扣的钱丢进nnc
+                object[] _param = new object[2];
+                _param[0] = who;
+                _param[1] = use;
+                nncCall("use_app", _param);
             }
             else
             {
@@ -412,6 +422,13 @@ namespace DApp
                 var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
                 Storage.Delete(Storage.CurrentContext, pricekey);
+
+                //把扣的钱丢进nnc
+                object[] _param = new object[2];
+                _param[0] = who;
+                _param[1] = moneyfordomain;
+                nncCall("use_app", _param);
+
 
                 //var money = balanceOf(who);
                 //money += moneyfordomain;
