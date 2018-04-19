@@ -19,7 +19,7 @@ NNS合约部署关系说明
 
 部署要求nep4 storage
 
-当前hash 0x2172f8d5b17c2d45fa3ff58dee8e8a4c3f51ef72
+当前hash 0x705521a3faae09c63815237a198083ede24e45cc
 对应地址 ASFbNRsA4MyzwwNzqu2RGLxXWHvQKeY6D6
 
 # 部署解析器和注册器
