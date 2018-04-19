@@ -392,13 +392,13 @@ namespace DApp
 
             onInitDomain(hash, getDomain(hash), info);
         }
-        static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl)
+        static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl, OwnerInfo pinfo)
         {
             if (subdomain.AsByteArray().Length == 0)
             {
                 return new byte[] { 0x00 };
             }
-            var pinfo = getOwnerInfo(nnshash);//父域名信息，用來取ttl，子域名ttl不能超過父域名
+            //var pinfo = getOwnerInfo(nnshash);//父域名信息，用來取ttl，子域名ttl不能超過父域名
             //var ttlself = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
             var nameinfo = getNameInfo(nnshash);
             if (nameinfo.domain.Length == 0)
@@ -518,32 +518,10 @@ namespace DApp
             }
             return 0;
         }
-        static int CheckRegister(byte[] callscript, byte[] p0, byte[] p1)
-        {
-            //先不去考虑跳板的问题
-            if (callscript.AsBigInteger() == jumpContract.AsBigInteger())
-            {//如果是跳板合约调用
-                byte[] _callscript = p0;
-                byte[] nnshash = p1;
-                var info = getOwnerInfo(nnshash);
-                //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-                if (_callscript.AsBigInteger() == info.register.AsBigInteger())
-                {
-                    return 2;
-                }
-            }
-            else
-            {
-                byte[] nnshash = p0;
-                var info = getOwnerInfo(nnshash);
-                //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-                if (callscript.AsBigInteger() == info.register.AsBigInteger())
-                {
-                    return 1;
-                }
-            }
-            return 0;
-        }
+        //static int CheckRegister(byte[] callscript, byte[] p0, byte[] p1)
+        //{
+
+        //}
         public static object Main(string method, object[] args)
         {
             string magic = "20180415";
@@ -656,14 +634,26 @@ namespace DApp
             #region 注册器接口 仅智能合约
             if (method == "register_SetSubdomainOwner")
             {
-                int n = CheckRegister(callscript, (byte[])args[0], (byte[])args[1]);
-                if (n == 1)
-                {
-                    return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger());
+                if (callscript.AsBigInteger() == jumpContract.AsBigInteger())
+                {//如果是跳板合约调用
+                    byte[] _callscript = (byte[])args[0];
+                    byte[] nnshash = (byte[])args[1];
+                    var pinfo = getOwnerInfo(nnshash);
+                    //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
+                    if (_callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                    {
+                        return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger(), pinfo);
+                    }
                 }
-                if (n == 2)
+                else
                 {
-                    return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger());
+                    byte[] nnshash = (byte[])args[0];
+                    var pinfo = getOwnerInfo(nnshash);
+                    //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
+                    if (callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                    {
+                        return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger(), pinfo);
+                    }
                 }
                 return new byte[] { 0x00 };
             }
