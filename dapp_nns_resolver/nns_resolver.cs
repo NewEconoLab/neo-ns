@@ -2,6 +2,7 @@
 using Neo.SmartContract.Framework.Services.Neo;
 using Neo.SmartContract.Framework.Services.System;
 using System;
+using System.ComponentModel;
 using System.Numerics;
 
 namespace DApp
@@ -13,6 +14,11 @@ namespace DApp
         //dict<"调用nns查询权限 只有是"
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
+
+        //通知，设置解析操作
+        public delegate void deleSetResolveData(byte[] namehash, string protocol, byte[] data);
+        [DisplayName("setResolveData")]
+        public static event deleSetResolveData onSetResolveData;
 
         #region 域名转hash算法
         //域名转hash算法
@@ -56,6 +62,8 @@ namespace DApp
                 byte[] fullhash = nameHashSub(nnshash, subdomain);
                 byte[] key = fullhash.Concat(protocol.AsByteArray());
                 Storage.Put(Storage.CurrentContext, key, data);
+                //通知解析设置动作
+                onSetResolveData(fullhash, protocol, data);
                 return new byte[] { 0x01 };
             }
             return new byte[] { 0x00 };
