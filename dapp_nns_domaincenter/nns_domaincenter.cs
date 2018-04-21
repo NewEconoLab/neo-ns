@@ -50,13 +50,13 @@ namespace DApp
         //    return ret;
         //}
         //通知 域名信息變更
-        public delegate void deleOwnerInfoChange(byte[] namehash, OwnerInfo addr);
+        public delegate void deleOwnerInfoChange(byte[] namehash, OwnerInfo addr, bool newdomain);
         [DisplayName("changeOwnerInfo")]
         public static event deleOwnerInfoChange onChangeOwnerInfo;
         //通知 新的域名
-        public delegate void deleInitDomain(byte[] namehash, string domain, NameInfo addr);
-        [DisplayName("initDomain")]
-        public static event deleInitDomain onInitDomain;
+        //public delegate void deleInitDomain(byte[] namehash, string domain, int root);
+        //[DisplayName("initDomain")]
+        //public static event deleInitDomain onInitDomain;
 
         delegate byte[] deleDyncall(string method, object[] arr);
 
@@ -66,7 +66,7 @@ namespace DApp
             byte[] phash = hash;
             for (var i = 0; i < 10; i++)
             {
-                var info = getNameInfo(phash);
+                var info = getOwnerInfo(phash);
                 phash = info.parenthash;
                 if (info.root == 0)
                 {
@@ -183,23 +183,31 @@ namespace DApp
             //    return new byte[] { 0x00, 0x01 };//已经存在根域名记录了，可以允许修改的吧
             //}
 
-            var ninfo = getNameInfo(nnshash);
+            bool newdomain = false;
+            var ninfo = getOwnerInfo(nnshash);
             if (ninfo.domain.Length == 0)
             {
-                ninfo = new NameInfo();
-                ninfo.parenthash = new byte[0];
-                ninfo.root = 1;
-                ninfo.domain = rootname;
-                saveNameInfo(nnshash, ninfo);
+                newdomain = true;
             }
 
-            OwnerInfo oinfo = new OwnerInfo();
-            oinfo.owner = superAdmin;
-            oinfo.register = newregister;
-            oinfo.resolver = new byte[0];
-            oinfo.TTL = 0;
-            oinfo.parentOwner = new byte[0];
-            saveOwnerInfo(nnshash, oinfo);
+            ninfo = new OwnerInfo();
+            ninfo.owner = superAdmin;
+            ninfo.register = newregister;
+            ninfo.resolver = new byte[0];
+            ninfo.TTL = 0;
+            ninfo.parentOwner = new byte[0];
+
+            ninfo.parenthash = new byte[0];
+            ninfo.root = 1;
+            ninfo.domain = rootname;
+            saveOwnerInfo(nnshash, ninfo, newdomain);
+            //OwnerInfo oinfo = new OwnerInfo();
+            //oinfo.owner = superAdmin;
+            //oinfo.register = newregister;
+            //oinfo.resolver = new byte[0];
+            //oinfo.TTL = 0;
+            //oinfo.parentOwner = new byte[0];
+            //saveOwnerInfo(nnshash, oinfo);
             //var oinfo = getInfo(nnshash);
             ////var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
             //if (oinfo.owner.Length == 0)
@@ -217,7 +225,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.owner = newowner;
-            saveOwnerInfo(nnshash, info);
+            saveOwnerInfo(nnshash, info,false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
             return new byte[] { 0x01 };
         }
@@ -226,7 +234,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.register = register;
-            saveOwnerInfo(nnshash, info);
+            saveOwnerInfo(nnshash, info,false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), register);
             return new byte[] { 0x01 };
         }
@@ -235,7 +243,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.resolver = resolver;
-            saveOwnerInfo(nnshash, info);
+            saveOwnerInfo(nnshash, info,false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }), resolver);
             return new byte[] { 0x01 };
         }
@@ -270,7 +278,17 @@ namespace DApp
             public byte[] resolver;
             public BigInteger TTL;
             public byte[] parentOwner;//当此域名注册时，他爹的所有者，记录这个，则可以检测域名的爹变了
+            //nameinfo 整合到一起
+            public string domain;//如果长度=0 表示没有初始化
+            public byte[] parenthash;
+            public BigInteger root;//是不是根合约
         }
+        //public class NameInfo
+        //{
+        //    public string domain;//如果长度=0 表示没有初始化
+        //    public byte[] parenthash;
+        //    public BigInteger root;//是不是根合约
+        //}
         public static OwnerInfo getOwnerInfo(byte[] hash)
         {
             var key = new byte[] { 0x12 }.Concat(hash);
@@ -279,6 +297,7 @@ namespace DApp
             {
                 OwnerInfo state = new OwnerInfo();
                 state.owner = new byte[0];
+                state.domain = "";
                 return state;
             }
 
@@ -311,46 +330,7 @@ namespace DApp
             seek += 2;
             info.parentOwner = data.Range(seek, len);
 
-            //新式实现方法
-            //var info = Helper.Deserialize(data) as OwnerInfo;
-            return info;
-        }
-        static void saveOwnerInfo(byte[] hash, OwnerInfo state)
-        {
-            var key = new byte[] { 0x12 }.Concat(hash);
-
-            byte[] value = byteLen(state.owner.Length).Concat(state.owner);
-            value = value.Concat(byteLen(state.register.Length)).Concat(state.register);
-            value = value.Concat(byteLen(state.resolver.Length)).Concat(state.resolver);
-            value = value.Concat(byteLen(state.TTL.AsByteArray().Length)).Concat(state.TTL.AsByteArray());
-            value = value.Concat(byteLen(state.parentOwner.Length)).Concat(state.parentOwner);
-
-            //var value = Helper.Serialize(state);
-            Storage.Put(Storage.CurrentContext, key, value);
-
-            onChangeOwnerInfo(hash, state);
-        }
-        public class NameInfo
-        {
-            public string domain;//如果长度=0 表示没有初始化
-            public byte[] parenthash;
-            public BigInteger root;//是不是根合约
-        }
-        public static NameInfo getNameInfo(byte[] hash)
-        {
-            var key = new byte[] { 0x11 }.Concat(hash);
-
-            var data = Storage.Get(Storage.CurrentContext, key);
-            if (data.Length == 0)
-            {
-                NameInfo einfo = new NameInfo();
-                einfo.domain = "";
-                return einfo;
-            }
-
-            //老式实现方法
-            NameInfo info = new NameInfo();
-            int seek = 0;
+            //整合nameinfo
             var domainlen = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
             info.domain = data.Range(seek, domainlen).AsString();
@@ -364,49 +344,103 @@ namespace DApp
             var rootlen = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
             info.root = data.Range(seek, rootlen).AsBigInteger();
+
+            //新式实现方法
+            //var info = Helper.Deserialize(data) as OwnerInfo;
             return info;
-
-
-            //var nnsInfo = Helper.Deserialize(data) as NameInfo;
-            //return nnsInfo;
         }
-
-        static void saveNameInfo(byte[] hash, NameInfo info)
+        static void saveOwnerInfo(byte[] hash, OwnerInfo info, bool newdomain)
         {
-
             var hash2 = info.root == 1 ? nameHash(info.domain) : nameHashSub(info.parenthash, info.domain);
             if (hash2.AsBigInteger() != hash.AsBigInteger())
                 throw new Exception("error hash.");
 
-            var key = new byte[] { 0x11 }.Concat(hash);
 
-            //老实实现法
+            var key = new byte[] { 0x12 }.Concat(hash);
 
-            byte[] value = byteLen(info.domain.Length).Concat(info.domain.AsByteArray());
+            byte[] value = byteLen(info.owner.Length).Concat(info.owner);
+            value = value.Concat(byteLen(info.register.Length)).Concat(info.register);
+            value = value.Concat(byteLen(info.resolver.Length)).Concat(info.resolver);
+            value = value.Concat(byteLen(info.TTL.AsByteArray().Length)).Concat(info.TTL.AsByteArray());
+            value = value.Concat(byteLen(info.parentOwner.Length)).Concat(info.parentOwner);
+
+            //整合nameinfo
+            value = value.Concat(byteLen(info.domain.Length)).Concat(info.domain.AsByteArray());
             value = value.Concat(byteLen(info.parenthash.Length)).Concat(info.parenthash);
             value = value.Concat(byteLen(info.root.AsByteArray().Length)).Concat(info.root.AsByteArray());
-            //新式实现法
-            //var value = Helper.Serialize(info);
 
+            //var value = Helper.Serialize(state);
             Storage.Put(Storage.CurrentContext, key, value);
 
-            onInitDomain(hash, getDomain(hash), info);
+            onChangeOwnerInfo(hash, info, newdomain);
         }
+
+        //public static NameInfo getNameInfo(byte[] hash)
+        //{
+        //    var key = new byte[] { 0x11 }.Concat(hash);
+
+        //    var data = Storage.Get(Storage.CurrentContext, key);
+        //    if (data.Length == 0)
+        //    {
+        //        NameInfo einfo = new NameInfo();
+        //        einfo.domain = "";
+        //        return einfo;
+        //    }
+
+        //    //老式实现方法
+        //    NameInfo info = new NameInfo();
+        //    int seek = 0;
+        //    var domainlen = (int)data.Range(seek, 2).AsBigInteger();
+        //    seek += 2;
+        //    info.domain = data.Range(seek, domainlen).AsString();
+        //    seek += domainlen;
+
+        //    var parenthashlen = (int)data.Range(seek, 2).AsBigInteger();
+        //    seek += 2;
+        //    info.parenthash = data.Range(seek, parenthashlen);
+        //    seek += parenthashlen;
+
+        //    var rootlen = (int)data.Range(seek, 2).AsBigInteger();
+        //    seek += 2;
+        //    info.root = data.Range(seek, rootlen).AsBigInteger();
+        //    return info;
+
+
+        //    //var nnsInfo = Helper.Deserialize(data) as NameInfo;
+        //    //return nnsInfo;
+        //}
+
+        //static void saveNameInfo(byte[] hash, NameInfo info)
+        //{
+
+
+        //    var key = new byte[] { 0x11 }.Concat(hash);
+
+        //    //老实实现法
+
+        //    byte[] value = byteLen(info.domain.Length).Concat(info.domain.AsByteArray());
+        //    value = value.Concat(byteLen(info.parenthash.Length)).Concat(info.parenthash);
+        //    value = value.Concat(byteLen(info.root.AsByteArray().Length)).Concat(info.root.AsByteArray());
+        //    //新式实现法
+        //    //var value = Helper.Serialize(info);
+
+        //    Storage.Put(Storage.CurrentContext, key, value);
+
+        //    onInitDomain(info.parenthash, info.domain, info);
+        //}
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl, OwnerInfo pinfo)
         {
             if (subdomain.AsByteArray().Length == 0)
             {
                 return new byte[] { 0x00 };
             }
-            //var pinfo = getOwnerInfo(nnshash);//父域名信息，用來取ttl，子域名ttl不能超過父域名
-            //var ttlself = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 })).AsBigInteger();
-            var nameinfo = getNameInfo(nnshash);
-            if (nameinfo.domain.Length == 0)
+            //var nameinfo = getNameInfo(nnshash);
+            if (pinfo.domain.Length == 0)
             {
                 throw new Exception("没找到根域名信息");
             }
             if (
-                nameinfo.root == 0//一级域名不检查ttl
+                pinfo.root == 0//一级域名不检查ttl
                 &&
                 ttl > pinfo.TTL
                 )
@@ -417,25 +451,36 @@ namespace DApp
 
             //記錄所有者信息
             var info = getOwnerInfo(hash);
+            bool newdomain = false;
             if (info.owner.Length == 0)
+            {
                 info = new OwnerInfo();
+                newdomain = true;
+            }
             info.owner = owner;
             info.TTL = ttl;
             info.parentOwner = pinfo.owner;//記錄注冊此域名時父域名的所有者，一旦父域名的所有者發生變化，子域名就可以檢查
-            saveOwnerInfo(hash, info);
+            //info.register=
+            //info.resolver
+            // 记录域名信息
+            info.parenthash = nnshash;
+            info.domain = subdomain;
+            info.root = 0;
+
+            saveOwnerInfo(hash, info,newdomain);
             //Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x00 }), owner);
             //Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 }), ttl);
 
             //记录域名信息
-            var ninfo = getNameInfo(hash);
-            if (ninfo.domain.Length == 0)
-            {
-                ninfo = new NameInfo();
-                ninfo.parenthash = nnshash;
-                ninfo.domain = subdomain;
-                ninfo.root = 0;
-                saveNameInfo(hash, ninfo);
-            }
+            //var ninfo = getNameInfo(hash);
+            //if (ninfo.domain.Length == 0)
+            //{
+            //    ninfo = new NameInfo();
+            //    ninfo.parenthash = nnshash;
+            //    ninfo.domain = subdomain;
+            //    ninfo.root = 0;
+            //    saveNameInfo(hash, ninfo);
+            //}
             return new byte[] { 0x01 };
         }
         #endregion
@@ -543,10 +588,10 @@ namespace DApp
             {
                 return getOwnerInfo((byte[])args[0]);
             }
-            if (method == "getNameInfo")
-            {
-                return getNameInfo((byte[])args[0]);
-            }
+            //if (method == "getNameInfo")
+            //{
+            //    return getNameInfo((byte[])args[0]);
+            //}
             if (method == "nameHash")
             {
                 var name = (string)args[0];
