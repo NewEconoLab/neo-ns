@@ -18,12 +18,17 @@ namespace DApp
         // dict<0x21+sellingid+user,money> 在拍卖中参与竞拍的数额
         // dict<0x12+id,1> 保存收据
 
-        //粗略一天的秒数，为了测试需要，缩短时间为一分钟=一天，五分钟结束
+        //粗略一天的秒数，为了测试需要，缩短时间为五分钟=一天，五分钟结束
         const int blockhour = 10;//加速版，每10块检测一次随机是否要结束
         const int secondday = 5 * 60;//加速版，300秒当一天
 
         //const int blockhour = 240;///一个小时约等于的块数，随机结束间隔，每240块检查一次
         //const int secondday = 3600 * 24;///一天是多少秒，用来判断拍卖进程用
+        const int secondyear = secondday * 365;//一租域名是365天
+        const int secondmonth = secondday * 30;//30天可以续约
+        //starttime + secondday*2  为拍卖阶段1
+        //~starttime + secondday*3  为拍卖阶段2
+        //~strttime +secondy*5
 
         //域名中心合约地址
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
@@ -260,7 +265,7 @@ namespace DApp
                 {
                     var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
                     var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-                    if ((nowtime - starttime) < secondday * 365)//一个拍卖7天以内是不能再拍的
+                    if ((nowtime - starttime) < secondyear)
                     {
                         return false;
                     }
@@ -475,7 +480,7 @@ namespace DApp
                     obj[1] = selling.domain;
                     obj[2] = who;
                     var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-                    obj[3] = starttime + secondday * 365;
+                    obj[3] = starttime + secondyear;
                     var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                     if (r.AsBigInteger() == 1)
                     {
@@ -495,13 +500,13 @@ namespace DApp
                 return false;
             if (info.TTL > nowtime)
                 return false;
-            if ((nowtime - info.TTL) < secondday * 30)//30天内 可以续约
+            if ((nowtime - info.TTL) < secondmonth)//30天内 可以续约
             {
                 object[] obj = new object[4];
                 obj[0] = parenthash;
                 obj[1] = domain;
                 obj[2] = who;
-                obj[3] = info.TTL + secondday * 365;
+                obj[3] = info.TTL + secondyear;
                 var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                 return r.AsBigInteger() == 1;
             }
