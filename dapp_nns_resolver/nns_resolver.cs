@@ -55,7 +55,7 @@ namespace DApp
             }
             object[] args = new object[1];
             args[0] = nnshash;
-            object[] info = (object[])rootCall("getInfo", args);
+            object[] info = (object[])rootCall("getOwnerInfo", args);
             byte[] nnsowner = (byte[])info[0];
             if(nnsowner.AsBigInteger()==owner.AsBigInteger())
             {
