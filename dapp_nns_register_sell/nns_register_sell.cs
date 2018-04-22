@@ -12,11 +12,14 @@ namespace DApp
         //注册器
         //    注册器合约，他的作用是分配某一个域名的二级域名
         //使用存储
-        // dict<subhash+0x01,owner > 记录域名拥有者数据
-        // dict<subhash+0x02,ttl > 记录域名拥有者数据
+        // dict<0x01+fullhash,sellingid> 记录域名最后一笔拍卖记录
+        // dict<0x02+sellingid,sellingstate> 记录拍卖状态
+        // dict<0x11+user,money> 暂存在拍卖合约的钱
+        // dict<0x21+sellingid+user,money> 在拍卖中参与竞拍的数额
+        // dict<0x12+id,1> 保存收据
 
-        const int blockday = 3600 * 24;//粗略一天的块数
-        const int domaindays = 1;//租一次给几天
+        //粗略一天的秒数，为了测试需要，缩短时间为一分钟=一天，五分钟结束
+        const int blockday = 5 * 60;//3600 * 24;
 
         //域名中心合约地址
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
@@ -114,10 +117,11 @@ namespace DApp
         //dict<domainhash,lastsellid> //查看域名最终的拍卖id
         public class SellingState
         {
-            public byte[] id;
-            //public SellingStep step;//销售阶段 这是算出来的
+            public byte[] id; //拍卖id，就是拍卖生成的txid
+
             public byte[] parenthash;//拍卖内容
             public string domain;//拍卖内容
+            public BigInteger domainTTL;//域名的TTL，用这个信息来判断域名是否发生了变化
 
             public BigInteger startBlockSelling;//开始销售块
             //public int StartTime 算出
@@ -132,7 +136,6 @@ namespace DApp
             public BigInteger maxPrice;//最高出价
             public byte[] maxBuyer;//最大出价者
             public BigInteger lastBlock;//最后出价块
-            public BigInteger gotDomain;//域名是否已经取走
         }
         public static SellingState getSellingStateByTXID(byte[] txid)
         {
@@ -149,6 +152,11 @@ namespace DApp
             len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
             state.domain = data.Range(seek, len).AsString();
+            seek += len;
+
+            len = (int)data.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            state.domainTTL = data.Range(seek, len).AsBigInteger();
             seek += len;
 
 
@@ -182,10 +190,6 @@ namespace DApp
             state.lastBlock = data.Range(seek, len).AsBigInteger();
             seek += len;
 
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.gotDomain = data.Range(seek, len).AsBigInteger();
-            seek += len;
             return state;
         }
         public static SellingState getSellingStateByFullhash(byte[] fullhash)
@@ -213,13 +217,14 @@ namespace DApp
             var key = new byte[] { 0x02 }.Concat(state.id);
             var value = byteLen(state.parenthash.Length).Concat(state.parenthash);
             value = value.Concat(byteLen(state.domain.AsByteArray().Length)).Concat(state.domain.AsByteArray());
+            value = value.Concat(byteLen(state.domainTTL.AsByteArray().Length)).Concat(state.domainTTL.AsByteArray());
+
             value = value.Concat(byteLen(state.startBlockSelling.AsByteArray().Length)).Concat(state.startBlockSelling.AsByteArray());
             value = value.Concat(byteLen(state.startBlockRan.AsByteArray().Length)).Concat(state.startBlockRan.AsByteArray());
             value = value.Concat(byteLen(state.endBlock.AsByteArray().Length)).Concat(state.endBlock.AsByteArray());
             value = value.Concat(byteLen(state.maxPrice.AsByteArray().Length)).Concat(state.maxPrice.AsByteArray());
             value = value.Concat(byteLen(state.maxBuyer.Length)).Concat(state.maxBuyer);
             value = value.Concat(byteLen(state.lastBlock.AsByteArray().Length)).Concat(state.lastBlock.AsByteArray());
-            value = value.Concat(byteLen(state.gotDomain.AsByteArray().Length)).Concat(state.gotDomain.AsByteArray());
 
             Storage.Put(Storage.CurrentContext, key, value);
 
@@ -227,8 +232,9 @@ namespace DApp
 
         public static bool wantBuy(byte[] hash, string domainname)
         {
+            var domaininfo = getOwnerInfo(hash);
             //先看这个域名归我管不
-            if (getOwnerInfo(hash).register.AsBigInteger() != ExecutionEngine.ExecutingScriptHash.AsBigInteger())
+            if (domaininfo.register.AsBigInteger() != ExecutionEngine.ExecutingScriptHash.AsBigInteger())
                 return false;
 
             //再看看域名能不能拍卖
@@ -259,14 +265,17 @@ namespace DApp
             }
 
             SellingState sell = new SellingState();
+            sell.parenthash = hash;
+            sell.domain = domainname;
+            sell.domainTTL = domaininfo.TTL;
+
             sell.startBlockSelling = Blockchain.GetHeight();//开始拍卖了
             sell.startBlockRan = 0;//随机块现在还不能确定
             sell.endBlock = 0;
             sell.maxPrice = 0;
             sell.maxBuyer = new byte[0];
             sell.lastBlock = 0;
-            sell.parenthash = hash;
-            sell.domain = domainname;
+
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
             saveSellingState(selling);
@@ -298,7 +307,7 @@ namespace DApp
             {
                 return false;
             }
-            if (selling.gotDomain == 1)//拍卖已经结束，域名已经取走，不能出价
+            if (selling.endBlock > 0)//拍卖已经结束,不能出价
             {
                 return false;
             }
@@ -415,6 +424,8 @@ namespace DApp
                 _param[0] = who;
                 _param[1] = use;
                 nncCall("use_app", _param);
+
+                return true;
             }
             else
             {
@@ -429,33 +440,39 @@ namespace DApp
                 _param[1] = moneyfordomain;
                 nncCall("use_app", _param);
 
-
+                return true;
                 //var money = balanceOf(who);
                 //money += moneyfordomain;
                 //var key = new byte[] { 0x11 }.Concat(who);
                 //Storage.Put(Storage.CurrentContext, key, money);
 
-                //把我的域名拿回来
-                object[] obj = new object[4];
-                obj[0] = selling.parenthash;
-                obj[1] = selling.domain;
-                obj[2] = who;
-                var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            }
 
-                obj[3] = starttime + blockday * 365;
-                var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
-                if (r.AsBigInteger() == 1)
-                {
-                    selling.gotDomain = 1;
-                    saveSellingState(selling);
-                    return true;
-                }
-                else
-                {
-                    return false;
+        }
+        public static bool getSellingDomain(byte[] who, byte[] txid)
+        {
+            var selling = getSellingStateByTXID(txid);
+            var fullhash = nameHashSub(selling.parenthash, selling.domain);
+            var info = getOwnerInfo(fullhash);
+            if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
+            {
+                if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化，所以可以用ttl比较
+                {//域名我可以拿走了
+                    object[] obj = new object[4];
+                    obj[0] = selling.parenthash;
+                    obj[1] = selling.domain;
+                    obj[2] = who;
+                    var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+                    obj[3] = starttime + blockday * 365;
+                    var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
+                    if (r.AsBigInteger() == 1)
+                    {
+                        return true;
+                    }
                 }
             }
-            return true;
+            return false;
+
         }
         public static bool renewDomain(byte[] who, byte[] parenthash, string domain)
         {
@@ -514,15 +531,19 @@ namespace DApp
             var tx = getTxIn(txid);
             if (tx.from.Length == 0)
                 return false;
+
             if (tx.to.AsBigInteger() == ExecutionEngine.ExecutingScriptHash.AsBigInteger())
             {
+                var keytx = new byte[] { 0x12 }.Concat(txid);
+                var n = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
+                if (n == 1)//这笔txid已经被用掉了
+                    return false;
                 //存錢
                 var key = new byte[] { 0x11 }.Concat(tx.from);
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
                 money += tx.value;
                 Storage.Put(Storage.CurrentContext, key, money);
                 //記錄這個txid處理過了，只處理一次
-                var keytx = new byte[] { 0x12 }.Concat(txid);
                 Storage.Put(Storage.CurrentContext, keytx, 1);
             }
             return false;
@@ -616,6 +637,15 @@ namespace DApp
                 //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
                 //如果中標，拍賣金全扣，給我域名所有權
                 return endSelling(who, txid);
+            }
+            if (method == "getSellingDomain")//拿走我拍到的域名
+            {
+                byte[] who = (byte[])args[0];
+                if (Runtime.CheckWitness(who) == false)
+                    return false;
+                byte[] txid = (byte[])args[1];//拍賣id
+
+                return getSellingDomain(who, txid);
             }
             if (method == "renewDomain")//续约域名
             {
