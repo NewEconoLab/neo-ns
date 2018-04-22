@@ -225,7 +225,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.owner = newowner;
-            saveOwnerInfo(nnshash, info,false);
+            saveOwnerInfo(nnshash, info, false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
             return new byte[] { 0x01 };
         }
@@ -234,7 +234,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.register = register;
-            saveOwnerInfo(nnshash, info,false);
+            saveOwnerInfo(nnshash, info, false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), register);
             return new byte[] { 0x01 };
         }
@@ -243,7 +243,7 @@ namespace DApp
         {
             var info = getOwnerInfo(nnshash);
             info.resolver = resolver;
-            saveOwnerInfo(nnshash, info,false);
+            saveOwnerInfo(nnshash, info, false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }), resolver);
             return new byte[] { 0x01 };
         }
@@ -329,21 +329,22 @@ namespace DApp
             len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
             info.parentOwner = data.Range(seek, len);
+            seek += len;
 
             //整合nameinfo
-            var domainlen = (int)data.Range(seek, 2).AsBigInteger();
+            len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.domain = data.Range(seek, domainlen).AsString();
-            seek += domainlen;
+            info.domain = data.Range(seek, len).AsString();
+            seek += len;
 
-            var parenthashlen = (int)data.Range(seek, 2).AsBigInteger();
+            len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.parenthash = data.Range(seek, parenthashlen);
-            seek += parenthashlen;
+            info.parenthash = data.Range(seek, len);
+            seek += len;
 
-            var rootlen = (int)data.Range(seek, 2).AsBigInteger();
+            len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
-            info.root = data.Range(seek, rootlen).AsBigInteger();
+            info.root = data.Range(seek, len).AsBigInteger();
 
             //新式实现方法
             //var info = Helper.Deserialize(data) as OwnerInfo;
@@ -467,7 +468,7 @@ namespace DApp
             info.domain = subdomain;
             info.root = 0;
 
-            saveOwnerInfo(hash, info,newdomain);
+            saveOwnerInfo(hash, info, newdomain);
             //Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x00 }), owner);
             //Storage.Put(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 }), ttl);
 
