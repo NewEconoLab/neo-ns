@@ -19,7 +19,11 @@ namespace DApp
         // dict<0x12+id,1> 保存收据
 
         //粗略一天的秒数，为了测试需要，缩短时间为一分钟=一天，五分钟结束
-        const int blockday = 5 * 60;//3600 * 24;
+        const int blockhour = 10;//加速版，每10块检测一次随机是否要结束
+        const int secondday = 5 * 60;//加速版，300秒当一天
+
+        //const int blockhour = 240;///一个小时约等于的块数，随机结束间隔，每240块检查一次
+        //const int secondday = 3600 * 24;///一天是多少秒，用来判断拍卖进程用
 
         //域名中心合约地址
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
@@ -256,7 +260,7 @@ namespace DApp
                 {
                     var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
                     var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-                    if ((nowtime - starttime) < blockday * 365)//一个拍卖7天以内是不能再拍的
+                    if ((nowtime - starttime) < secondday * 365)//一个拍卖7天以内是不能再拍的
                     {
                         return false;
                     }
@@ -278,7 +282,7 @@ namespace DApp
 
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
-            saveSellingState(selling);
+            saveSellingState(sell);
 
             return true;
         }
@@ -300,9 +304,9 @@ namespace DApp
             }
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-            var step2time = starttime + blockday * 2;
-            var steprantime = starttime + blockday * 3;
-            var endtime = starttime + blockday * 5;
+            var step2time = starttime + secondday * 2;
+            var steprantime = starttime + secondday * 3;
+            var endtime = starttime + secondday * 5;
             if (nowtime > endtime)//太久了，不能出价
             {
                 return false;
@@ -352,9 +356,9 @@ namespace DApp
 
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-            var step2time = starttime + blockday * 2;
-            var steprantime = starttime + blockday * 3;
-            var endtime = starttime + blockday * 5;
+            var step2time = starttime + secondday * 2;
+            var steprantime = starttime + secondday * 3;
+            var endtime = starttime + secondday * 5;
 
             if (nowtime < steprantime)//随机期都没到，肯定没结束
                 return false;
@@ -382,7 +386,7 @@ namespace DApp
             }
 
             ulong endv = 0;
-            for (var i = selling.startBlockRan; i < Blockchain.GetHeight(); i += 240)//随机结束，那就用4800
+            for (var i = selling.startBlockRan; i < Blockchain.GetHeight(); i += blockhour)//随机结束，那就用4800
             {
                 var blockheader = Blockchain.GetHeader((uint)i);
                 endv += (blockheader.ConsensusData % 4800);
@@ -456,6 +460,14 @@ namespace DApp
             var info = getOwnerInfo(fullhash);
             if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
             {
+                //还要判断 
+                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+                var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+                if(moneyfordomain>0)//没有endselling 付钱呢
+                {
+                    return false;
+                }
+
                 if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化，所以可以用ttl比较
                 {//域名我可以拿走了
                     object[] obj = new object[4];
@@ -463,7 +475,7 @@ namespace DApp
                     obj[1] = selling.domain;
                     obj[2] = who;
                     var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
-                    obj[3] = starttime + blockday * 365;
+                    obj[3] = starttime + secondday * 365;
                     var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                     if (r.AsBigInteger() == 1)
                     {
@@ -483,13 +495,13 @@ namespace DApp
                 return false;
             if (info.TTL > nowtime)
                 return false;
-            if ((nowtime - info.TTL) < blockday * 30)//30天内 可以续约
+            if ((nowtime - info.TTL) < secondday * 30)//30天内 可以续约
             {
                 object[] obj = new object[4];
                 obj[0] = parenthash;
                 obj[1] = domain;
                 obj[2] = who;
-                obj[3] = info.TTL + blockday * 365;
+                obj[3] = info.TTL + secondday * 365;
                 var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                 return r.AsBigInteger() == 1;
             }
