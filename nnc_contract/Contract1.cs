@@ -347,9 +347,19 @@ namespace Nep5_Contract
         private static void SetAccountDetail(byte[] address, AccountDetail detail)
         {
             var key = new byte[] { 0x11 }.Concat(address);
-            byte[] outinfo = byteLen(detail.cash.AsByteArray().Length).Concat(detail.cash.AsByteArray());
-            outinfo = outinfo.Concat(byteLen(detail.saving.AsByteArray().Length)).Concat(detail.saving.AsByteArray());
-            outinfo = outinfo.Concat(byteLen(detail.saving.AsByteArray().Length)).Concat(detail.saving.AsByteArray());
+            byte[] doublezero = new byte[] { 0, 0 };
+
+            byte[] data = detail.cash.AsByteArray();
+            byte[] datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            byte[] outinfo = datalen.Concat(data);
+
+            data = detail.saving.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            outinfo = outinfo.Concat(datalen).Concat(data);
+
+            data = detail.savingblock.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            outinfo = outinfo.Concat(datalen).Concat(data);
 
             Storage.Put(Storage.CurrentContext, key, outinfo);
         }
@@ -460,17 +470,17 @@ namespace Nep5_Contract
             public byte[] to;
             public BigInteger value;
         }
-        private static byte[] byteLen(BigInteger n)
-        {
-            byte[] v = n.AsByteArray();
-            if (v.Length > 2)
-                throw new Exception("not support");
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            return v;
-        }
+        //private static byte[] byteLen(BigInteger n)
+        //{
+        //    byte[] v = n.AsByteArray();
+        //    if (v.Length > 2)
+        //        throw new Exception("not support");
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    return v;
+        //}
         public static TransferInfo getTXInfo(byte[] txid)
         {
             byte[] v = Storage.Get(Storage.CurrentContext, txid);
@@ -509,10 +519,20 @@ namespace Nep5_Contract
             info.value = value;
 
             //用一个老式实现法
-            byte[] txinfo = byteLen(info.from.Length).Concat(info.from);
-            txinfo = txinfo.Concat(byteLen(info.to.Length)).Concat(info.to);
-            byte[] _value = value.AsByteArray();
-            txinfo = txinfo.Concat(byteLen(_value.Length)).Concat(_value);
+            byte[] doublezero = new byte[] { 0, 0 };
+
+            byte[] data = info.from;
+            byte[] datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            byte[] txinfo = datalen.Concat(data);
+
+            data = info.to;
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            txinfo = txinfo.Concat(datalen).Concat(data);
+
+            data = value.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            txinfo = txinfo.Concat(datalen).Concat(data);
+
             //新式实现方法只要一行
             //byte[] txinfo = Helper.Serialize(info);
 

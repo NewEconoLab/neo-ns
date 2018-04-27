@@ -35,7 +35,7 @@ namespace DApp
         static extern object rootCall(string method, object[] arr);
 
         //nnc合约地址
-        [Appcall("bab964febd82c9629cc583596975f51811f25f47")]
+        [Appcall("e792196084c99536490e9d275d38b65a3b4793a9")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -65,17 +65,17 @@ namespace DApp
         }
 
         #endregion
-        private static byte[] byteLen(BigInteger n)
-        {
-            byte[] v = n.AsByteArray();
-            if (v.Length > 2)
-                throw new Exception("not support");
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            return v;
-        }
+        //private static byte[] byteLen(BigInteger n)
+        //{
+        //    byte[] v = n.AsByteArray();
+        //    if (v.Length > 2)
+        //        throw new Exception("not support");
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    return v;
+        //}
         public enum DomainUseState
         {
             Empty,//未注冊
@@ -224,16 +224,45 @@ namespace DApp
             }
 
             var key = new byte[] { 0x02 }.Concat(state.id);
-            var value = byteLen(state.parenthash.Length).Concat(state.parenthash);
-            value = value.Concat(byteLen(state.domain.AsByteArray().Length)).Concat(state.domain.AsByteArray());
-            value = value.Concat(byteLen(state.domainTTL.AsByteArray().Length)).Concat(state.domainTTL.AsByteArray());
 
-            value = value.Concat(byteLen(state.startBlockSelling.AsByteArray().Length)).Concat(state.startBlockSelling.AsByteArray());
-            value = value.Concat(byteLen(state.startBlockRan.AsByteArray().Length)).Concat(state.startBlockRan.AsByteArray());
-            value = value.Concat(byteLen(state.endBlock.AsByteArray().Length)).Concat(state.endBlock.AsByteArray());
-            value = value.Concat(byteLen(state.maxPrice.AsByteArray().Length)).Concat(state.maxPrice.AsByteArray());
-            value = value.Concat(byteLen(state.maxBuyer.Length)).Concat(state.maxBuyer);
-            value = value.Concat(byteLen(state.lastBlock.AsByteArray().Length)).Concat(state.lastBlock.AsByteArray());
+            var doublezero = new byte[] { 0, 0 };
+
+            var data = state.parenthash;
+            var datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            var value = datalen.Concat(data);
+
+            data = state.domain.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.domainTTL.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.startBlockSelling.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.startBlockRan.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.endBlock.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.maxPrice.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.maxBuyer;
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
+            data = state.lastBlock.AsByteArray();
+            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(datalen).Concat(data);
+
 
             Storage.Put(Storage.CurrentContext, key, value);
 
@@ -468,7 +497,7 @@ namespace DApp
                 //还要判断 
                 var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-                if(moneyfordomain>0)//没有endselling 付钱呢
+                if (moneyfordomain > 0)//没有endselling 付钱呢
                 {
                     return false;
                 }
