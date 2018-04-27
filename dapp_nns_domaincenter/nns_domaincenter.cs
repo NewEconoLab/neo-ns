@@ -259,17 +259,17 @@ namespace DApp
         // dict<hash+0x02,resolver> 域名解析器
         // dict<hash+0x03,ttl>   记录域名过期数据
 
-        private static byte[] byteLen(BigInteger n)
-        {
-            byte[] v = n.AsByteArray();
-            if (v.Length > 2)
-                throw new Exception("not support");
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            if (v.Length < 2)
-                v = v.Concat(new byte[1] { 0x00 });
-            return v;
-        }
+        //private static byte[] byteLen(BigInteger n)
+        //{
+        //    byte[] v = n.AsByteArray();
+        //    if (v.Length > 2)
+        //        throw new Exception("not support");
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    if (v.Length < 2)
+        //        v = v.Concat(new byte[1] { 0x00 });
+        //    return v;
+        //}
 
         public class OwnerInfo
         {
@@ -358,17 +358,39 @@ namespace DApp
 
 
             var key = new byte[] { 0x12 }.Concat(hash);
+            var doublezero = new byte[] { 0, 0 };
 
-            byte[] value = byteLen(info.owner.Length).Concat(info.owner);
-            value = value.Concat(byteLen(info.register.Length)).Concat(info.register);
-            value = value.Concat(byteLen(info.resolver.Length)).Concat(info.resolver);
-            value = value.Concat(byteLen(info.TTL.AsByteArray().Length)).Concat(info.TTL.AsByteArray());
-            value = value.Concat(byteLen(info.parentOwner.Length)).Concat(info.parentOwner);
+            var data = info.owner;
+            var lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            byte[] value = lendata.Concat(data);
 
+            data = info.register;
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
+
+            data = info.resolver;
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
+
+            data = info.TTL.AsByteArray();
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
+
+            data = info.parentOwner;
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
             //整合nameinfo
-            value = value.Concat(byteLen(info.domain.Length)).Concat(info.domain.AsByteArray());
-            value = value.Concat(byteLen(info.parenthash.Length)).Concat(info.parenthash);
-            value = value.Concat(byteLen(info.root.AsByteArray().Length)).Concat(info.root.AsByteArray());
+            data = info.domain.AsByteArray();
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
+
+            data = info.parenthash;
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
+
+            data = info.root.AsByteArray();
+            lendata = ((BigInteger)data.Length).ToByteArray().Concat(doublezero).Range(0, 2);
+            value = value.Concat(lendata).Concat(data);
 
             //var value = Helper.Serialize(state);
             Storage.Put(Storage.CurrentContext, key, value);
