@@ -18,3 +18,8 @@
 /nnc_contract/bin
 /dapp_nns_register_sell/bin
 /dapp_nns_register_sell/obj
+/dapp_sgas/.vs
+/dapp_sgas/bin
+/dapp_sgas/obj
+/dapp_nns_coinpool/bin
+/dapp_nns_coinpool/obj
