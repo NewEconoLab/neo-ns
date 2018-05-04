@@ -138,7 +138,8 @@ namespace DApp
             //rantime //算出
             //endtime //算出
             //最终领取时间 算出，如果超出最终领取时间没有领域名，就不让领了
-            public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人，记录他出价的块
+            //public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人，记录他出价的块
+            //这个变量移除，改为运算更少的随机块决定方式
             //从这个块开始，往后的每一个块出价都有一定几率直接结束
             public BigInteger endBlock;//结束块
 
@@ -174,10 +175,10 @@ namespace DApp
             state.startBlockSelling = data.Range(seek, len).AsBigInteger();
             seek += len;
 
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.startBlockRan = data.Range(seek, len).AsBigInteger();
-            seek += len;
+            //len = (int)data.Range(seek, 2).AsBigInteger();
+            //seek += 2;
+            //state.startBlockRan = data.Range(seek, len).AsBigInteger();
+            //seek += len;
 
             len = (int)data.Range(seek, 2).AsBigInteger();
             seek += 2;
@@ -243,9 +244,9 @@ namespace DApp
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
             value = value.Concat(datalen).Concat(data);
 
-            data = state.startBlockRan.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
+            //data = state.startBlockRan.AsByteArray();
+            //datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            //value = value.Concat(datalen).Concat(data);
 
             data = state.endBlock.AsByteArray();
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
@@ -308,7 +309,7 @@ namespace DApp
             sell.domainTTL = domaininfo.TTL;
 
             sell.startBlockSelling = Blockchain.GetHeight();//开始拍卖了
-            sell.startBlockRan = 0;//随机块现在还不能确定
+            //sell.startBlockRan = 0;//随机块现在还不能确定
             sell.endBlock = 0;
             sell.maxPrice = 0;
             sell.maxBuyer = new byte[0];
@@ -412,26 +413,28 @@ namespace DApp
                 return true;
             }
 
-            //如果发现随机期都没进，先进一下
-            if (selling.startBlockRan == 0)
+            //随机期
+            var nowheader = Blockchain.GetHeader(Blockchain.GetHeight());
+            //得到当前块在整个随机期所处的位置
+            var persenttime = (nowheader.Timestamp - steprantime) * 1000 / (endtime - steprantime);
+            //当处于10%位置的时候，只有10%的几率结束
+            if ((nowheader.ConsensusData % 1000) < persenttime)//随机数小于块位置
             {
-                selling.startBlockRan = Blockchain.GetHeight();
+                //if (selling.startBlockRan == 0)
+                //{
+                //    selling.startBlockRan = Blockchain.GetHeight();
+                //}
+                selling.endBlock = nowheader.Index; ;//突然死亡，无法出价了
                 saveSellingState(selling);
+                return true;
             }
 
-            ulong endv = 0;
-            for (var i = selling.startBlockRan; i < Blockchain.GetHeight(); i += blockhour)//随机结束，那就用4800
-            {
-                var blockheader = Blockchain.GetHeader((uint)i);
-                endv += (blockheader.ConsensusData % 4800);
-                if (endv > 4800)
-                {
-                    selling.endBlock = i;//突然死亡，无法出价了
-                    saveSellingState(selling);
-                    return true;
-                }
-            }
-
+            ////如果发现随机期都没进，先进一下
+            //if (selling.startBlockRan == 0)
+            //{
+            //    selling.startBlockRan = Blockchain.GetHeight();
+            //    saveSellingState(selling);
+            //}
             //走到这里都没死，那就允许你出价，这里是随机期
             return false;
         }
