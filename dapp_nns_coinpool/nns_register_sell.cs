@@ -178,18 +178,15 @@ namespace Nep5_Contract
                 //领取自己的
                 if (method == "claim")
                 {
-                    for (var i = 0; i < args.Length; i++)
-                    {
-                        //utxo产生信息
-                        uint fromheight = (uint)args[0];
-                        int fromindex = (int)args[1];
-                        int n = (int)args[2];
-                        //utxo销毁信息
-                        uint toheight = (uint)args[3];
-                        int toindex = (int)args[4];
-                        int inputN = (int)args[5];
-                        return claim(fromheight, fromindex, n, toheight, toindex, inputN);
-                    }
+                    //utxo产生信息
+                    uint fromheight = (uint)args[0];
+                    int fromindex = (int)args[1];
+                    int n = (int)args[2];
+                    //utxo销毁信息
+                    uint toheight = (uint)args[3];
+                    int toindex = (int)args[4];
+                    int inputN = (int)args[5];
+                    return claim(fromheight, fromindex, n, toheight, toindex, inputN);
                 }
 
             }
