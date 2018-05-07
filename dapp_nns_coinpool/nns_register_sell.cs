@@ -134,8 +134,8 @@ namespace Nep5_Contract
                 var bheight = ((BigInteger)i).AsByteArray().Concat(quadZero).Range(0, 4);
                 var key = new byte[] { 0x11 }.Concat(bheight);
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();//0.1gas
-                if (money == 0)
-                    break;
+                //if (money == 0)
+                //    break;
                 //如果能领就领了他
                 canget += money / 100000000 * output.Value;//money除以发行量
             }
