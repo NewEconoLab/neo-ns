@@ -308,7 +308,6 @@ namespace DApp
                         return false;
                     }
                 }
-
             }
 
             SellingState sell = new SellingState();
@@ -492,9 +491,11 @@ namespace DApp
             _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
             _param[1] = coinpool; //to
             _param[2] = use;//value
-            sgasCall("transfer_app", _param);
-            object[] id = new object[0];
 
+            object[] id = new object[1];
+            id[0]  = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+
+            sgasCall("transfer_app", _param);
             coinpoolCall("setSGASIn", id);
 
             return true;
@@ -754,6 +755,20 @@ namespace DApp
             {
                 byte[] txid = (byte[])args[0];// 提供一個txid，查這筆txid 的nep5入賬證明
                 return setMoneyIn(txid);
+            }
+            if(method == "test_pool")
+            {
+                // 把扣的钱丢进coinpool
+                object[] _param = new object[3];
+                _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
+                _param[1] = coinpool; //to
+                _param[2] = 10;//value
+
+                object[] id = new object[1];
+                id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+
+                sgasCall("transfer_app", _param);
+                coinpoolCall("setSGASIn", id);
             }
             #endregion
             return new byte[] { 0 };
