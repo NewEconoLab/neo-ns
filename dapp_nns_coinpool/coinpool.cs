@@ -166,8 +166,6 @@ namespace Nep5_Contract
                 if (method == "setSGASIn")
                 {
                     var txid = (byte[])args[0];
-                    if (txid == null)
-                        return setSGASIn(callscript);
                     return setSGASIn(txid);
                 }
                 //检查一个块里的钱
