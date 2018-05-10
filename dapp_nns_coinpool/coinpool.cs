@@ -30,6 +30,7 @@ namespace Nep5_Contract
             public byte[] to;
             public BigInteger value;
         }
+
         static TransferInfo getTxIn(byte[] txid)
         {
             var keytx = new byte[] { 0x12 }.Concat(txid);
@@ -63,10 +64,10 @@ namespace Nep5_Contract
                 if (n == 1)//这笔txid已经被用掉了
                     return false;
 
-                //記錄這個txid處理過了，只處理一次
+                // 記錄這個txid處理過了，只處理一次
                 Storage.Put(Storage.CurrentContext, keytx, 1);
 
-                //存錢,每隔多少块儿存一次
+                // 存錢,每隔多少块儿存一次
                 var height = (Blockchain.GetHeight() / 10000) * 10000;
                 var bheight = ((BigInteger)height).AsByteArray().Concat(quadZero).Range(0, 4);
                 var key = new byte[] { 0x11 }.Concat(bheight);
@@ -76,6 +77,7 @@ namespace Nep5_Contract
             }
             return false;
         }
+
         public static BigInteger countSGASOnBlock(BigInteger blockid)
         {
             var height = (Blockchain.GetHeight() / 10000) * 10000;
@@ -84,24 +86,24 @@ namespace Nep5_Contract
             var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
             return money;
         }
+
         public static bool claim(uint fromheight, int fromindex, int n, uint toheight, int toindex, int inputN)
         {
-            //檢查輸出的資源對不對
-
+            // 檢查輸出的資源對不對
             var starttx = Blockchain.GetBlock(fromheight).GetTransaction(fromindex);
             var output = starttx.GetOutputs()[n];
-            if(Runtime.CheckWitness(output.ScriptHash)==false)//只能自己领取自己的
+            if (Runtime.CheckWitness(output.ScriptHash) == false)//只能自己领取自己的
             {
                 return false;
             }
             var endtx = Blockchain.GetBlock(toheight).GetTransaction(toindex);
             var input = endtx.GetInputs()[inputN];
-            //输入输出不匹配
+            // 输入输出不匹配
             if (input.PrevIndex != n || input.PrevHash.AsBigInteger() != starttx.Hash.AsBigInteger())
             {
                 return false;
             }
-            //资产种类不对
+            // 资产种类不对
             if (output.AssetId.AsBigInteger() != utxo_nnc_id.AsBigInteger())
             {
                 return false;
@@ -113,16 +115,14 @@ namespace Nep5_Contract
             uint end = (toheight / 10000) * 10000;
 
             var hasClaim = Storage.Get(Storage.CurrentContext, utxokey).AsBigInteger();
-            if (hasClaim >= end)//领奖高度要是已经达到销毁高度，这个utxo无法再领取了
+
+            if (hasClaim >= end)// 领奖高度要是已经达到销毁高度，这个utxo无法再领取了
             {
                 return false;
             }
-            //if(begin==end)//这个utxo跨度太小，不能领取SGAS
-            //{
-            //    return false;
-            //}
-            //begin 和 end 必须相差两个跨度，这个循环自动排除上面相等的情况
-            //限制循环长度
+
+            // begin 和 end 必须相差两个跨度，这个循环自动排除上面相等的情况
+            // 限制循环长度
             if (hasClaim == 0)
                 hasClaim = begin + 10000;
             var endClaim = (BigInteger)end;
@@ -134,12 +134,11 @@ namespace Nep5_Contract
                 var bheight = ((BigInteger)i).AsByteArray().Concat(quadZero).Range(0, 4);
                 var key = new byte[] { 0x11 }.Concat(bheight);
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();//0.1gas
-                //if (money == 0)
-                //    break;
+
                 //如果能领就领了他
                 canget += money / 100000000 * output.Value;//money除以发行量
             }
-            //标记这个utxo领过奖了
+            // 标记这个utxo领过奖了
             Storage.Put(Storage.CurrentContext, utxokey, endClaim);
 
             var info = new object[3];

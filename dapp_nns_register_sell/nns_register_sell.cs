@@ -7,10 +7,10 @@ using System.Numerics;
 
 namespace DApp
 {
-    public class nns_register_fifo : SmartContract
+    public class nns_register_sell : SmartContract
     {
         //注册器
-        //    注册器合约，他的作用是分配某一个域名的二级域名
+        //    注册器合约,他的作用是分配某一个域名的二级域名
         //使用存储
         // dict<0x01+fullhash,sellingid> 记录域名最后一笔拍卖记录
         // dict<0x02+sellingid,sellingstate> 记录拍卖状态
@@ -18,12 +18,12 @@ namespace DApp
         // dict<0x21+sellingid+user,money> 在拍卖中参与竞拍的数额
         // dict<0x12+id,1> 保存收据
 
-        //粗略一天的秒数，为了测试需要，缩短时间为五分钟=一天，五分钟结束
-        const int blockhour = 10;//加速版，每10块检测一次随机是否要结束
-        const int secondday = 5 * 60;//加速版，300秒当一天
+        //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
+        const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
+        const int secondday = 5 * 60;//加速版,300秒当一天
 
-        //const int blockhour = 240;///一个小时约等于的块数，随机结束间隔，每240块检查一次
-        //const int secondday = 3600 * 24;///一天是多少秒，用来判断拍卖进程用
+        //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
+        //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
         const int secondmonth = secondday * 30;//30天可以续约
         //starttime + secondday*2  为拍卖阶段1
@@ -34,9 +34,17 @@ namespace DApp
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
 
-        //nnc合约地址
-        [Appcall("e792196084c99536490e9d275d38b65a3b4793a9")]
-        static extern object nncCall(string method, object[] arr);
+        // sgas合约地址
+        // sgas转账
+        [Appcall("bc0fdb1c1b84601a9c66594cb481b684b90e05bb")]
+        static extern object sgasCall(string method, object[] arr);
+
+        static readonly byte[]  coinpool = { 154,177,127,176,88,82,210,32,30,164,129,153,35,218,223,3,110,54,240,126 };
+
+        // coinpool 合约地址
+        // 竞拍手续费扣除
+        [Appcall("7ef0366e03dfda239981a41e20d25258b07fb19a")]
+        static extern object coinpoolCall(string method, object[] arr);
 
         #region 域名转hash算法
         //域名转hash算法
@@ -89,7 +97,7 @@ namespace DApp
             public byte[] register;
             public byte[] resolver;
             public BigInteger TTL;
-            public byte[] parentOwner;//当此域名注册时，他爹的所有者，记录这个，则可以检测域名的爹变了
+            public byte[] parentOwner;//当此域名注册时,他爹的所有者,记录这个,则可以检测域名的爹变了
         }
         private static OwnerInfo getOwnerInfo(byte[] fullhash)
         {
@@ -126,21 +134,21 @@ namespace DApp
         //dict<domainhash,lastsellid> //查看域名最终的拍卖id
         public class SellingState
         {
-            public byte[] id; //拍卖id，就是拍卖生成的txid
+            public byte[] id; //拍卖id,就是拍卖生成的txid
 
             public byte[] parenthash;//拍卖内容
             public string domain;//拍卖内容
-            public BigInteger domainTTL;//域名的TTL，用这个信息来判断域名是否发生了变化
+            public BigInteger domainTTL;//域名的TTL,用这个信息来判断域名是否发生了变化
 
             public BigInteger startBlockSelling;//开始销售块
             //public int StartTime 算出
             //step2time //算出
             //rantime //算出
             //endtime //算出
-            //最终领取时间 算出，如果超出最终领取时间没有领域名，就不让领了
-            //public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人，记录他出价的块
-            //这个变量移除，改为运算更少的随机块决定方式
-            //从这个块开始，往后的每一个块出价都有一定几率直接结束
+            //最终领取时间 算出,如果超出最终领取时间没有领域名,就不让领了
+            //public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人,记录他出价的块
+            //这个变量移除,改为运算更少的随机块决定方式
+            //从这个块开始,往后的每一个块出价都有一定几率直接结束
             public BigInteger endBlock;//结束块
 
             public BigInteger maxPrice;//最高出价
@@ -291,7 +299,7 @@ namespace DApp
                 if (testEnd(selling) == false)//拍卖未结束不准
                     return false;
 
-                if (selling.maxBuyer.Length > 0)//未流拍的拍卖，一年内不得再拍
+                if (selling.maxBuyer.Length > 0)//未流拍的拍卖,一年内不得再拍
                 {
                     var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
                     var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
@@ -300,7 +308,6 @@ namespace DApp
                         return false;
                     }
                 }
-
             }
 
             SellingState sell = new SellingState();
@@ -326,6 +333,14 @@ namespace DApp
             var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
             return Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
         }
+
+        /// <summary>
+        /// 域名拍卖 加价
+        /// </summary>
+        /// <param name="who">加价人</param>
+        /// <param name="txid">拍卖id</param>
+        /// <param name="value">增加的出价</param>
+        /// <returns>加价成功？</returns>
         public static bool addPrice(byte[] who, byte[] txid, BigInteger value)
         {
             var money = balanceOf(who);
@@ -342,7 +357,7 @@ namespace DApp
             var step2time = starttime + secondday * 2;
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
-            if (nowtime > endtime)//太久了，不能出价
+            if (nowtime > endtime)//太久了,不能出价
             {
                 return false;
             }
@@ -350,10 +365,10 @@ namespace DApp
             {
                 return false;
             }
-            if (nowtime < steprantime)//随机期以前，随便出价
+            if (nowtime < steprantime)//随机期以前,随便出价
             {
             }
-            else //随机期怎么办，有可能这里就直接被结束了
+            else //随机期怎么办,有可能这里就直接被结束了
             {
                 var b = testEnd(selling);//测试能不能结束
                 if (b)
@@ -373,7 +388,8 @@ namespace DApp
             Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
 
             if (moneyfordomain > selling.maxPrice)
-            {//高于最高出价了,更新我为最高出价者
+            {
+                // 高于最高出价了,更新我为最高出价者
                 selling.maxPrice = moneyfordomain;
                 selling.maxBuyer = who;
                 selling.lastBlock = Blockchain.GetHeight();
@@ -381,6 +397,7 @@ namespace DApp
             }
             return true;
         }
+
         private static bool testEnd(SellingState selling)
         {
             if (selling.startBlockSelling == 0)//就没开始过
@@ -395,7 +412,7 @@ namespace DApp
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
 
-            if (nowtime < steprantime)//随机期都没到，肯定没结束
+            if (nowtime < steprantime)//随机期都没到,肯定没结束
                 return false;
 
             if (nowtime > endtime)//毫无悬念结束了
@@ -417,77 +434,72 @@ namespace DApp
             var nowheader = Blockchain.GetHeader(Blockchain.GetHeight());
             //得到当前块在整个随机期所处的位置
             var persenttime = (nowheader.Timestamp - steprantime) * 1000 / (endtime - steprantime);
-            //当处于10%位置的时候，只有10%的几率结束
+            //当处于10%位置的时候,只有10%的几率结束
             if ((nowheader.ConsensusData % 1000) < persenttime)//随机数小于块位置
             {
-                //if (selling.startBlockRan == 0)
-                //{
-                //    selling.startBlockRan = Blockchain.GetHeight();
-                //}
-                selling.endBlock = nowheader.Index; ;//突然死亡，无法出价了
+                selling.endBlock = nowheader.Index; ;//突然死亡,无法出价了
                 saveSellingState(selling);
                 return true;
             }
 
-            ////如果发现随机期都没进，先进一下
-            //if (selling.startBlockRan == 0)
-            //{
-            //    selling.startBlockRan = Blockchain.GetHeight();
-            //    saveSellingState(selling);
-            //}
-            //走到这里都没死，那就允许你出价，这里是随机期
+            //走到这里都没死,那就允许你出价,这里是随机期
             return false;
         }
+
+        /// <summary>
+        /// 结束竞拍
+        /// </summary>
+        /// <param name="who">账户地址</param>
+        /// <param name="txid">竞拍id</param>
+        /// <returns></returns>
         public static bool endSelling(byte[] who, byte[] txid)
         {
             var selling = getSellingStateByTXID(txid);
             bool b = testEnd(selling);
+
             if (b == false)
                 return false;
+
+            BigInteger use = 0;
             if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
-            {//最大出价人不是我
-                //结束了，把我的钱取回来
+            {
+                // 最大出价人不是我
+                // 结束了,把我的钱取回来
                 var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
                 Storage.Delete(Storage.CurrentContext, pricekey);
 
                 var money = balanceOf(who);
 
-                var use = moneyfordomain / 10;
+                use = moneyfordomain / 10;
 
                 money += (moneyfordomain - use);//退9折
                 var key = new byte[] { 0x11 }.Concat(who);
                 Storage.Put(Storage.CurrentContext, key, money);
-
-
-                //把扣的钱丢进nnc
-                object[] _param = new object[2];
-                _param[0] = who;
-                _param[1] = use;
-                nncCall("use_app", _param);
-
-                return true;
             }
             else
             {
-                //结束了，把我的钱扣了
+                //结束了,把我的钱扣了
                 var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
                 Storage.Delete(Storage.CurrentContext, pricekey);
-
-                //把扣的钱丢进nnc
-                object[] _param = new object[2];
-                _param[0] = who;
-                _param[1] = moneyfordomain;
-                nncCall("use_app", _param);
-
-                return true;
-                //var money = balanceOf(who);
-                //money += moneyfordomain;
-                //var key = new byte[] { 0x11 }.Concat(who);
-                //Storage.Put(Storage.CurrentContext, key, money);
-
+                use = moneyfordomain;
             }
+
+            // 把扣的钱丢进coinpool
+            object[] _param = new object[3];
+            _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
+            _param[1] = coinpool; //to; //to
+            _param[2] = use.ToByteArray();//value
+
+            object[] id = new object[1];
+            id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+
+            sgasCall("transfer_app", _param);
+            coinpoolCall("setSGASIn", id);
+
+            return true;
+
 
         }
         public static bool getSellingDomain(byte[] who, byte[] txid)
@@ -505,7 +517,7 @@ namespace DApp
                     return false;
                 }
 
-                if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化，所以可以用ttl比较
+                if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化,所以可以用ttl比较
                 {//域名我可以拿走了
                     object[] obj = new object[4];
                     obj[0] = selling.parenthash;
@@ -544,6 +556,7 @@ namespace DApp
             }
             return false;
         }
+
         #region 資金管理
         //dict<0x11+who,bigint money> //money字典
         //dict<0x12+txid,0 or 1> //交易是否已充值字典
@@ -553,15 +566,16 @@ namespace DApp
             public byte[] to;
             public BigInteger value;
         }
+
         static TransferInfo getTxIn(byte[] txid)
         {
             var keytx = new byte[] { 0x12 }.Concat(txid);
             var v = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
-            if (v == 0)//如果這個交易已經處理過，就當get不到
+            if (v == 0)//如果這個交易已經處理過,就當get不到
             {
                 object[] _p = new object[1];
                 _p[0] = txid;
-                var info = nncCall("getTXInfo", _p);
+                var info = sgasCall("getTXInfo", _p);
                 if (((object[])info).Length == 3)
                     return info as TransferInfo;
             }
@@ -569,12 +583,23 @@ namespace DApp
             tInfo.from = new byte[0];
             return tInfo;
         }
-        //返回我在拍賣合約裏面存的nnc余額
+
+        /// <summary>
+        /// 获取存在注册器的sgas余额
+        /// </summary>
+        /// <param name="who">地址</param>
+        /// <returns>余额</returns>
         public static BigInteger balanceOf(byte[] who)
         {
             var key = new byte[] { 0x11 }.Concat(who);
             return Storage.Get(Storage.CurrentContext, key).AsBigInteger();
         }
+
+        /// <summary>
+        /// 向注册器转账
+        /// </summary>
+        /// <param name="txid">交易id</param>
+        /// <returns>转账成功？</returns>
         public static bool setMoneyIn(byte[] txid)
         {
             var tx = getTxIn(txid);
@@ -592,23 +617,32 @@ namespace DApp
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
                 money += tx.value;
                 Storage.Put(Storage.CurrentContext, key, money);
-                //記錄這個txid處理過了，只處理一次
+                //記錄這個txid處理過了,只處理一次
                 Storage.Put(Storage.CurrentContext, keytx, 1);
             }
             return false;
         }
+
+        /// <summary>
+        /// 从注册器提取sgas
+        /// </summary>
+        /// <param name="who">地址</param>
+        /// <param name="count">提取金额</param>
+        /// <returns></returns>
         public static bool getMoneyBack(byte[] who, BigInteger count)
         {
             var key = new byte[] { 0x11 }.Concat(who);
             var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
             if (money < count)
                 return false;
+
             //存錢
             object[] trans = new object[3];
             trans[0] = ExecutionEngine.ExecutingScriptHash;
             trans[1] = who;
             trans[2] = count;
-            bool succ = (bool)nncCall("transfer_app", trans);
+
+            bool succ = (bool)sgasCall("transfer_app", trans);
             if (succ)
             {
                 money -= count;
@@ -630,10 +664,10 @@ namespace DApp
             //    //0x00未登記 可以申請開標
             //    //0x01使用中
             //    //0x02已過期 可以申請開標
-            //    //0x10開標階段01 ，自由競價，固定時間
-            //    //0x11開標階段02 ，自由競價，固定時間如果這個階段無人出價直接階段
-            //    //0x12開標階段03 ，自由競價，時間不確定隨時結束
-            //    //0x20投標結束，有人中標則可將狀態改回01，無人中標則可直接申請開標，轉爲10
+            //    //0x10開標階段01 ,自由競價,固定時間
+            //    //0x11開標階段02 ,自由競價,固定時間如果這個階段無人出價直接階段
+            //    //0x12開標階段03 ,自由競價,時間不確定隨時結束
+            //    //0x20投標結束,有人中標則可將狀態改回01,無人中標則可直接申請開標,轉爲10
             //    byte[] nnshash = (byte[])args[0];
             //    string domain = (string)args[1];
             //}
@@ -667,16 +701,16 @@ namespace DApp
                 byte[] txid = (byte[])args[1];
                 BigInteger myprice = (BigInteger)args[2];
                 //如果有就充值到我的戶頭
-                //如果戶頭的錢夠扣，就參與投標
+                //如果戶頭的錢夠扣,就參與投標
                 return addPrice(who, txid, myprice);
             }
-            if (method == "balanceOfSelling")//看我投标的数额
+            if (method == "balanceOfSelling")// 看我投标的数额
             {
                 byte[] who = (byte[])args[0];
                 byte[] txid = (byte[])args[1];//拍賣id
                 return balanceOfSelling(who, txid);
             }
-            if (method == "endSelling")//限制狀態20
+            if (method == "endSelling")// 限制狀態20
             {
                 byte[] who = (byte[])args[0];
                 if (Runtime.CheckWitness(who) == false)
@@ -684,7 +718,7 @@ namespace DApp
 
                 byte[] txid = (byte[])args[1];//拍賣id
                 //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
-                //如果中標，拍賣金全扣，給我域名所有權
+                //如果中標,拍賣金全扣,給我域名所有權
                 return endSelling(who, txid);
             }
             if (method == "getSellingDomain")//拿走我拍到的域名
@@ -711,16 +745,31 @@ namespace DApp
                 byte[] who = (byte[])args[0];
                 return balanceOf(who);
             }
-            if (method == "getmoneyback")//把多餘的錢取回
+            if (method == "getmoneyback")// 把多餘的錢取回
             {
                 byte[] who = (byte[])args[0];
                 BigInteger myprice = (BigInteger)args[1];
                 return getMoneyBack(who, myprice);
             }
-            if (method == "setmoneyin")//如果用普通方式轉了nep5進來，也不要緊
+            if (method == "setmoneyin")//如果用普通方式轉了nep5進來,也不要緊
             {
-                byte[] txid = (byte[])args[0];//提供一個txid，查這筆txid 的nep5入賬證明
+                byte[] txid = (byte[])args[0];// 提供一個txid,查這筆txid 的nep5入賬證明
                 return setMoneyIn(txid);
+            }
+            if (method == "test_pool")
+            {
+                BigInteger b = 10;
+                // 把扣的钱丢进coinpool
+                object[] _param = new object[3];
+                _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
+                _param[1] = coinpool; //to
+                _param[2] = b.ToByteArray();//value
+
+                object[] id = new object[1];
+                id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+
+                sgasCall("transfer_app", _param);
+                coinpoolCall("setSGASIn", id);
             }
             #endregion
             return new byte[] { 0 };
