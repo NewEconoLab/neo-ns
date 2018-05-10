@@ -47,8 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Contract1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="sgas.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
