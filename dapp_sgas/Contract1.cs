@@ -31,6 +31,11 @@ namespace Nep5_Contract
         [DisplayName("transfer")]
         public static event deleTransfer Transferred;
 
+
+        public delegate void deleRefundTarget(byte[] txid, byte[] who);
+        [DisplayName("onRefundTarget")]
+        public static event deleRefundTarget onRefundTarget;
+
         //gas 0x602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7
         //反序  e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60
         private static readonly byte[] gas_asset_id = Helper.HexToBytes("e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60");
@@ -228,6 +233,7 @@ namespace Nep5_Contract
             //标记这个utxo归我所有
             byte[] coinid = tx.Hash.Concat(new byte[] { 0, 0 });
             Storage.Put(Storage.CurrentContext, coinid, who);
+            onRefundTarget(tx.Hash,who);
             //改变总量
             var total_supply = Storage.Get(Storage.CurrentContext, "totalSupply").AsBigInteger();
             total_supply -= count;
