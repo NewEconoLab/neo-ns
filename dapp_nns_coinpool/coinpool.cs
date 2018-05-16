@@ -21,7 +21,7 @@ namespace Nep5_Contract
         private static readonly byte[] utxo_nnc_id = Helper.HexToBytes("474780a84be3681dbd076b63c0bad0b94506e7ee4f2c82905b23e55bcc6c2cc1");
         //nep5 func
         //SGAS合约地址
-        [Appcall("bc0fdb1c1b84601a9c66594cb481b684b90e05bb")]
+        [Appcall("4ac464f84f50d3f902c2f0ca1658bfaa454ddfbf")]
         static extern object sgasCall(string method, object[] arr);
 
         public class TransferInfo
@@ -150,7 +150,7 @@ namespace Nep5_Contract
         }
         public static object Main(string method, object[] args)
         {
-            var magicstr = "2018-05-03";
+            var magicstr = "2018-05-14";
 
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {

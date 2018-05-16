@@ -36,14 +36,14 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("bc0fdb1c1b84601a9c66594cb481b684b90e05bb")]
+        [Appcall("4ac464f84f50d3f902c2f0ca1658bfaa454ddfbf")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[]  coinpool = { 154,177,127,176,88,82,210,32,30,164,129,153,35,218,223,3,110,54,240,126 };
 
         // coinpool 合约地址
         // 竞拍手续费扣除
-        [Appcall("7ef0366e03dfda239981a41e20d25258b07fb19a")]
+        [Appcall("5d6b91ee7cde1f8bb1868d36d4bf134f6887d231")]
         static extern object coinpoolCall(string method, object[] arr);
 
         #region 域名转hash算法

@@ -16,7 +16,7 @@ namespace DApp
         // dict<subhash+0x02,ttl > 记录域名拥有者数据
 
         const int secondperday = 24 * 3600;//一天
-        const int domaindays = 1;//租一次给几天
+        const int domaindays = 7;//租一次给几天
 
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
