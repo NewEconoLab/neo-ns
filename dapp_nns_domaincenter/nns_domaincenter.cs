@@ -68,7 +68,7 @@ namespace DApp
             {
                 var info = getOwnerInfo(phash);
                 phash = info.parenthash;
-                if (info.root == 0)
+                //if (info.root == 0)
                 {
                     if (i == 0)
                         outstr = info.domain;
