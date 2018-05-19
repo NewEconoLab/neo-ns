@@ -61,6 +61,7 @@ namespace DApp
             {
                 byte[] fullhash = nameHashSub(nnshash, subdomain);
                 byte[] key = fullhash.Concat(protocol.AsByteArray());
+                key = new byte[] { 0x31 }.Concat(key);
                 Storage.Put(Storage.CurrentContext, key, data);
                 //通知解析设置动作
                 onSetResolveData(fullhash, protocol, data);
@@ -71,6 +72,7 @@ namespace DApp
         public static byte[] resolve(string protocol,byte[] domainhash)
         {
             byte[] key = domainhash.Concat(protocol.AsByteArray());
+            key = new byte[] { 0x31 }.Concat(key);
             return Storage.Get(Storage.CurrentContext, key);
         }
 

@@ -58,6 +58,7 @@ namespace Nep5_Contract
         }
         public static BigInteger balanceOf(byte[] address)
         {
+            var keyAddress = new byte[] { 0x11 }.Concat(address);
             return Storage.Get(Storage.CurrentContext, address).AsBigInteger();
         }
         public static bool transfer(byte[] from, byte[] to, BigInteger value)
@@ -69,18 +70,20 @@ namespace Nep5_Contract
             //付款方
             if (from.Length > 0)
             {
-                BigInteger from_value = Storage.Get(Storage.CurrentContext, from).AsBigInteger();
+                var keyFrom = new byte[] { 0x11 }.Concat(from);
+                BigInteger from_value = Storage.Get(Storage.CurrentContext, keyFrom).AsBigInteger();
                 if (from_value < value) return false;
                 if (from_value == value)
                     Storage.Delete(Storage.CurrentContext, from);
                 else
-                    Storage.Put(Storage.CurrentContext, from, from_value - value);
+                    Storage.Put(Storage.CurrentContext, keyFrom, from_value - value);
             }
             //收款方
             if (to.Length > 0)
             {
-                BigInteger to_value = Storage.Get(Storage.CurrentContext, to).AsBigInteger();
-                Storage.Put(Storage.CurrentContext, to, to_value + value);
+                var keyTo = new byte[] { 0x11 }.Concat(to);
+                BigInteger to_value = Storage.Get(Storage.CurrentContext, keyTo).AsBigInteger();
+                Storage.Put(Storage.CurrentContext, keyTo, to_value + value);
             }
             //记录交易信息
             setTxInfo(from, to, value);
