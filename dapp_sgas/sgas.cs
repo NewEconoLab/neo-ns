@@ -59,7 +59,7 @@ namespace Nep5_Contract
         public static BigInteger balanceOf(byte[] address)
         {
             var keyAddress = new byte[] { 0x11 }.Concat(address);
-            return Storage.Get(Storage.CurrentContext, address).AsBigInteger();
+            return Storage.Get(Storage.CurrentContext, keyAddress).AsBigInteger();
         }
         public static bool transfer(byte[] from, byte[] to, BigInteger value)
         {
@@ -74,7 +74,7 @@ namespace Nep5_Contract
                 BigInteger from_value = Storage.Get(Storage.CurrentContext, keyFrom).AsBigInteger();
                 if (from_value < value) return false;
                 if (from_value == value)
-                    Storage.Delete(Storage.CurrentContext, from);
+                    Storage.Delete(Storage.CurrentContext, keyFrom);
                 else
                     Storage.Put(Storage.CurrentContext, keyFrom, from_value - value);
             }
