@@ -23,6 +23,8 @@ namespace DApp
 
         //static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
+
         public class OwnerInfo
         {
             public byte[] owner;//如果长度=0 表示没有初始化
@@ -182,6 +184,49 @@ namespace DApp
             //请求者调用
             if (method == "requestSubDomain")
                 return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
+
+
+            #region 升级合约,耗费590,仅限管理员
+            if (method == "migrate")
+            {
+                //不是管理员 不能操作
+                if (!Runtime.CheckWitness(superAdmin))
+                    return false;
+
+                if (args.Length != 1 && args.Length != 9)
+                    return false;
+
+                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                byte[] new_script = (byte[])args[0];
+                //如果传入的脚本一样 不继续操作
+                if (script == new_script)
+                    return false;
+
+                byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                byte return_type = 0x05;
+                bool need_storage = (bool)(object)01;
+                string name = "register_fifo";
+                string version = "1";
+                string author = "xx";
+                string email = "xx";
+                string description = "先到先得注册器";
+
+                if (args.Length == 9)
+                {
+                    parameter_list = (byte[])args[1];
+                    return_type = (byte)args[2];
+                    need_storage = (bool)args[3];
+                    name = (string)args[4];
+                    version = (string)args[5];
+                    author = (string)args[6];
+                    email = (string)args[7];
+                    description = (string)args[8];
+                }
+                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return true;
+            }
+            #endregion
+
             return new byte[] { 0 };
         }
     }

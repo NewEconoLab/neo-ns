@@ -657,6 +657,46 @@ namespace DApp
                 return new byte[] { 0x00 };
             }
             #endregion
+            #region 升级合约,耗费590,仅限管理员
+            if (method == "migrate")
+            {
+                //不是管理员 不能操作
+                if (!Runtime.CheckWitness(superAdmin))
+                    return false;
+
+                if (args.Length != 1 && args.Length != 9)
+                    return false;
+
+                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                byte[] new_script = (byte[])args[0];
+                //如果传入的脚本一样 不继续操作
+                if (script == new_script)
+                    return false;
+
+                byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                byte return_type = 0x05;
+                bool need_storage = (bool)(object)01;
+                string name = "domaincenter";
+                string version = "1";
+                string author = "xx";
+                string email = "xx";
+                string description = "域名中心";
+
+                if (args.Length == 9)
+                {
+                    parameter_list = (byte[])args[1];
+                    return_type = (byte)args[2];
+                    need_storage = (bool)args[3];
+                    name = (string)args[4];
+                    version = (string)args[5];
+                    author = (string)args[6];
+                    email = (string)args[7];
+                    description = (string)args[8];
+                }
+                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return true;
+            }
+            #endregion
             #region 所有者接口 直接调用&智能合约
             if (method == "owner_SetOwner")
             {

@@ -37,6 +37,9 @@ namespace Nep5_Contract
         //gas 0x602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7
         //反序  e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60
         private static readonly byte[] gas_asset_id = Helper.HexToBytes("e72d286979ee6cb1b7e65dfddfb2e384100b8d148e7758de42e4168b71792c60");
+
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//管理员
+
         //nep5 func
         public static BigInteger totalSupply()
         {
@@ -112,7 +115,8 @@ namespace Nep5_Contract
         //}
         public static TransferInfo getTXInfo(byte[] txid)
         {
-            byte[] v = Storage.Get(Storage.CurrentContext, txid);
+            byte[] keytxid = new byte[] { 0x12 }.Concat(txid);
+            byte[] v = Storage.Get(Storage.CurrentContext, keytxid);
             if (v.Length == 0)
                 return null;
 
@@ -166,8 +170,9 @@ namespace Nep5_Contract
             //新式实现方法只要一行
             //byte[] txinfo = Helper.Serialize(info);
 
-            var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-            Storage.Put(Storage.CurrentContext, txid, txinfo);
+            var txid =(ExecutionEngine.ScriptContainer as Transaction).Hash;
+            var keytxid = new byte[] { 0x12}.Concat(txid);
+            Storage.Put(Storage.CurrentContext, keytxid, txinfo);
         }
         public static bool mintTokens()
         {
@@ -384,6 +389,47 @@ namespace Nep5_Contract
                     byte[] hash = (byte[])args[0];
                     return getRefundTarget(hash);
                 }
+
+                #region 升级合约,耗费590,仅限管理员
+                if (method == "migrate")
+                {
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage = (bool)(object)01;
+                    string name = "sgas";
+                    string version = "1";
+                    string author = "xx";
+                    string email = "xx";
+                    string description = "gas与sgas的互换";
+
+                    if (args.Length == 9)
+                    {
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
+                    }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
+                }
+                #endregion
             }
             return false;
         }

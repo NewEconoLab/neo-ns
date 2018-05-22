@@ -19,6 +19,9 @@ namespace Nep5_Contract
         //UTXO NNC  c12c6ccc5be5235b90822c4feee70645b9d0bac0636b07bd1d68e34ba8804747
         //反序 474780a84be3681dbd076b63c0bad0b94506e7ee4f2c82905b23e55bcc6c2cc1
         private static readonly byte[] utxo_nnc_id = Helper.HexToBytes("474780a84be3681dbd076b63c0bad0b94506e7ee4f2c82905b23e55bcc6c2cc1");
+
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//管理员
+
         //nep5 func
         //SGAS合约地址
         [Appcall("4ac464f84f50d3f902c2f0ca1658bfaa454ddfbf")]
@@ -188,6 +191,47 @@ namespace Nep5_Contract
                     return claim(fromheight, fromindex, n, toheight, toindex, inputN);
                 }
 
+
+                #region 升级合约,耗费590,仅限管理员
+                if (method == "migrate")
+                {
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage =(bool)(object)01;
+                    string name = "coinpool";
+                    string version = "1";
+                    string author = "xx";
+                    string email = "xx";
+                    string description = "sgas分赃池";
+
+                    if (args.Length == 9)
+                    {
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
+                    }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
+                }
+                #endregion
             }
             return false;
         }

@@ -30,6 +30,8 @@ namespace DApp
         //~starttime + secondday*3  为拍卖阶段2
         //~strttime +secondy*5
 
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
+
         //域名中心合约地址
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
@@ -770,6 +772,48 @@ namespace DApp
 
                 sgasCall("transfer_app", _param);
                 coinpoolCall("setSGASIn", id);
+            }
+            #endregion
+
+
+            #region 升级合约,耗费590,仅限管理员
+            if (method == "migrate")
+            {
+                //不是管理员 不能操作
+                if (!Runtime.CheckWitness(superAdmin))
+                    return false;
+
+                if (args.Length != 1 && args.Length != 9)
+                    return false;
+
+                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                byte[] new_script = (byte[])args[0];
+                //如果传入的脚本一样 不继续操作
+                if (script == new_script)
+                    return false;
+
+                byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                byte return_type = 0x05;
+                bool need_storage = (bool)(object)01;
+                string name = "register_sell";
+                string version = "1";
+                string author = "xx";
+                string email = "xx";
+                string description = "拍卖注册器";
+
+                if (args.Length == 9)
+                {
+                    parameter_list = (byte[])args[1];
+                    return_type = (byte)args[2];
+                    need_storage = (bool)args[3];
+                    name = (string)args[4];
+                    version = (string)args[5];
+                    author = (string)args[6];
+                    email = (string)args[7];
+                    description = (string)args[8];
+                }
+                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return true;
             }
             #endregion
             return new byte[] { 0 };

@@ -15,6 +15,8 @@ namespace DApp
         [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
         static extern object rootCall(string method, object[] arr);
 
+        static readonly byte[] superAdmin = Neo.SmartContract.Framework.Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
+
         //通知，设置解析操作
         public delegate void deleSetResolveData(byte[] namehash, string protocol, byte[] data);
         [DisplayName("setResolveData")]
@@ -85,6 +87,50 @@ namespace DApp
             //请求者调用
             if (method == "setResolveData")
                 return setResolveData((byte[])args[0], (byte[])args[1], (string)args[2], (string)args[3], (byte[])args[4]);
+
+
+
+            #region 升级合约,耗费590,仅限管理员
+            if (method == "migrate")
+            {
+                //不是管理员 不能操作
+                if (!Runtime.CheckWitness(superAdmin))
+                    return new byte[] { 0};
+
+                if (args.Length != 1 && args.Length != 9)
+                    return new byte[] { 0 };
+
+                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                byte[] new_script = (byte[])args[0];
+                //如果传入的脚本一样 不继续操作
+                if (script == new_script)
+                    return new byte[] { 0 };
+
+                byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                byte return_type = 0x05;
+                bool need_storage = (bool)(object)01;
+                string name = "resolver";
+                string version = "1";
+                string author = "xx";
+                string email = "xx";
+                string description = "解析器";
+
+                if (args.Length == 9)
+                {
+                    parameter_list = (byte[])args[1];
+                    return_type = (byte)args[2];
+                    need_storage = (bool)args[3];
+                    name = (string)args[4];
+                    version = (string)args[5];
+                    author = (string)args[6];
+                    email = (string)args[7];
+                    description = (string)args[8];
+                }
+                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return new byte[] {1 };
+            }
+            #endregion
+
             return new byte[] { 0 };
         }
     }

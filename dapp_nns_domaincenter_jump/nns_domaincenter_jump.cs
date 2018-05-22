@@ -8,7 +8,7 @@ using System.Numerics;
 
 namespace DApp
 {
-    public class nns_domaincenter : SmartContract
+    public class nns_domaincenter_jump : SmartContract
     {
         //域名中心跳板合约 
         //    域名中心开发过程中地址一直在改变，造成调试不变，故设置一个跳板
@@ -76,6 +76,47 @@ namespace DApp
                 newarg[4] = args[3];
                 deleDyncall dyncall = (deleDyncall)target.ToDelegate();
                 return dyncall(method, newarg);
+            }
+            #endregion
+
+            #region 升级合约,耗费990(有动态调用),仅限管理员
+            if (method == "migrate")
+            {
+                //不是管理员 不能操作
+                if (!Runtime.CheckWitness(superAdmin))
+                    return false;
+
+                if (args.Length != 1 && args.Length != 9)
+                    return false;
+
+                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                byte[] new_script = (byte[])args[0];
+                //如果传入的脚本一样 不继续操作
+                if (script == new_script)
+                    return false;
+
+                byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                byte return_type = 0x05;
+                bool need_storage = (bool)(object)03;
+                string name = "domaincenter_jump";
+                string version = "1";
+                string author = "xx";
+                string email = "xx";
+                string description = "域名跳板合约";
+
+                if (args.Length == 9)
+                {
+                    parameter_list = (byte[])args[1];
+                    return_type = (byte)args[2];
+                    need_storage = (bool)args[3];
+                    name = (string)args[4];
+                    version = (string)args[5];
+                    author = (string)args[6];
+                    email = (string)args[7];
+                    description = (string)args[8];
+                }
+                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return true;
             }
             #endregion
             deleDyncall _dyncall = (deleDyncall)target.ToDelegate();
