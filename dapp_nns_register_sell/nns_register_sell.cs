@@ -4,6 +4,7 @@ using Neo.SmartContract.Framework.Services.System;
 using Helper = Neo.SmartContract.Framework.Helper;
 using System;
 using System.Numerics;
+using System.ComponentModel;
 
 namespace DApp
 {
@@ -17,6 +18,24 @@ namespace DApp
         // dict<0x11+user,money> 暂存在拍卖合约的钱
         // dict<0x21+sellingid+user,money> 在拍卖中参与竞拍的数额
         // dict<0x12+id,1> 保存收据
+
+        //注册器通知
+        // （基础）域名信息变更 OwnerInfo 域名中心实现了
+        //拍卖注册器通知
+        // 拍卖信息变更通知  sellingstate
+        // 资金变更  moneystate
+
+        public delegate void deleSellingState(SellingState sellingState);
+        [DisplayName("domainstate")]
+        public static event deleSellingState onSellingState;
+
+        public delegate void deleTransfer(byte[] from, byte[] to, BigInteger value);
+        [DisplayName("transfer")]
+        public static event deleTransfer Transferred;
+
+        public delegate void deleAddPrice(byte[] who, SellingState sellingState, BigInteger value);
+        [DisplayName("addprice")]
+        public static event deleAddPrice onAddPrice;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
         const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
@@ -33,19 +52,19 @@ namespace DApp
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
         //域名中心合约地址
-        [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
+        [Appcall("5cbc9fbd11d7003ca3b47cbec1117caf6224f317")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
         // sgas转账
-        [Appcall("4ac464f84f50d3f902c2f0ca1658bfaa454ddfbf")]
+        [Appcall("e52a08c20986332ad8dccf9ded38cc493878064a")]
         static extern object sgasCall(string method, object[] arr);
 
-        static readonly byte[]  coinpool = { 154,177,127,176,88,82,210,32,30,164,129,153,35,218,223,3,110,54,240,126 };
+        static readonly byte[]  coinpool = Helper.ToScriptHash("ALKJxhqWJXgAAKCWE3soXAarPVeB3mGBvN");
 
         // coinpool 合约地址
         // 竞拍手续费扣除
-        [Appcall("5d6b91ee7cde1f8bb1868d36d4bf134f6887d231")]
+        [Appcall("7c27d1d3fb737dd2743fb05a6d97614394b89c35")]
         static extern object coinpoolCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -327,7 +346,7 @@ namespace DApp
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
             saveSellingState(sell);
-
+            onSellingState(sell);
             return true;
         }
         public static BigInteger balanceOfSelling(byte[] who, byte[] txid)
@@ -388,7 +407,7 @@ namespace DApp
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             moneyfordomain += value;
             Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
-
+            onAddPrice(who,selling,value);
             if (moneyfordomain > selling.maxPrice)
             {
                 // 高于最高出价了,更新我为最高出价者
@@ -421,6 +440,7 @@ namespace DApp
             {
                 selling.endBlock = Blockchain.GetHeight();
                 saveSellingState(selling);
+                onSellingState(selling);
                 return true;
             }
 
@@ -429,6 +449,7 @@ namespace DApp
             {
                 selling.endBlock = Blockchain.GetHeight();
                 saveSellingState(selling);
+                onSellingState(selling);
                 return true;
             }
 
@@ -441,6 +462,7 @@ namespace DApp
             {
                 selling.endBlock = nowheader.Index; ;//突然死亡,无法出价了
                 saveSellingState(selling);
+                onSellingState(selling);
                 return true;
             }
 
@@ -776,7 +798,7 @@ namespace DApp
             #endregion
 
 
-            #region 升级合约,耗费590,仅限管理员
+            #region 升级合约,耗费490,仅限管理员
             if (method == "migrate")
             {
                 //不是管理员 不能操作

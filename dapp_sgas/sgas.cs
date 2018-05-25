@@ -255,7 +255,7 @@ namespace Nep5_Contract
         }
         public static object Main(string method, object[] args)
         {
-            var magicstr = "2018-04-10";
+            var magicstr = "2018-05-24";
 
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
@@ -312,6 +312,10 @@ namespace Nep5_Contract
                 if (outputcount != inputcount)
                     return false;
                 //没有资金离开本合约地址，允许
+                return true;
+            }
+            else if (Runtime.Trigger == TriggerType.VerificationR)
+            {
                 return true;
             }
             else if (Runtime.Trigger == TriggerType.Application)

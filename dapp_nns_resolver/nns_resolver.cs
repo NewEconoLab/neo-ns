@@ -90,7 +90,7 @@ namespace DApp
 
 
 
-            #region 升级合约,耗费590,仅限管理员
+            #region 升级合约,耗费490,仅限管理员
             if (method == "migrate")
             {
                 //不是管理员 不能操作

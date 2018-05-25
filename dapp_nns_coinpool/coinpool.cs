@@ -24,7 +24,7 @@ namespace Nep5_Contract
 
         //nep5 func
         //SGAS合约地址
-        [Appcall("4ac464f84f50d3f902c2f0ca1658bfaa454ddfbf")]
+        [Appcall("e52a08c20986332ad8dccf9ded38cc493878064a")]
         static extern object sgasCall(string method, object[] arr);
 
         public class TransferInfo
@@ -192,7 +192,7 @@ namespace Nep5_Contract
                 }
 
 
-                #region 升级合约,耗费590,仅限管理员
+                #region 升级合约,耗费490,仅限管理员
                 if (method == "migrate")
                 {
                     //不是管理员 不能操作
