@@ -29,10 +29,6 @@ namespace DApp
         [DisplayName("domainstate")]
         public static event deleSellingState onSellingState;
 
-        public delegate void deleTransfer(byte[] from, byte[] to, BigInteger value);
-        [DisplayName("transfer")]
-        public static event deleTransfer Transferred;
-
         public delegate void deleAddPrice(byte[] who, SellingState sellingState, BigInteger value);
         [DisplayName("addprice")]
         public static event deleAddPrice onAddPrice;
@@ -51,8 +47,8 @@ namespace DApp
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
-        //域名中心合约地址
-        [Appcall("5cbc9fbd11d7003ca3b47cbec1117caf6224f317")]
+        //域名中心跳板合约地址
+        [Appcall("ee46b4f6d2073381dc61ae74099ccf3a56e38dd1")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
