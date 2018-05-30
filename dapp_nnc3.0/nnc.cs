@@ -39,7 +39,6 @@ namespace dapp_nnc
 
         public class CoinPoolInfo
         {
-            public BigInteger balance;//奖池余额
             public BigInteger lastblock; //最后一个有数据的块
             public BigInteger fullblock;//最后一个有完整数据的块
         }
@@ -97,6 +96,21 @@ namespace dapp_nnc
             //获得当前块的高度
             var height = Blockchain.GetHeight();
 
+            //为了保护每个有交易的区块高度都有系统费的值   多了1.x个gas
+            var bytes_CurHeight = ((BigInteger)height).AsByteArray().Concat(quadZero).Range(0, 4);
+            var key_CurHeight = new byte[] { 0x12 }.Concat(bytes_CurHeight);
+            var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
+            if (curMoney == 0)
+            {
+                CoinPoolInfo coinPoolInfo = Helper.Deserialize(Storage.Get(Storage.CurrentContext, "CoinPoolInfo")) as CoinPoolInfo;
+                //获取上一个有记录的块的高度  不一定每个块都有数据
+                var preHeight = coinPoolInfo.fullblock;
+                //获取该块的totalmoney
+                var key_PreHeight = new byte[] { 0x12 }.Concat(preHeight.AsByteArray().Concat(quadZero).Range(0, 4));
+                var preMoney = Storage.Get(Storage.CurrentContext, key_PreHeight).AsBigInteger();
+                Storage.Put(Storage.CurrentContext, key_CurHeight, preMoney);
+            }
+
             //付款方
             if (from.Length > 0)
             {
@@ -104,7 +118,7 @@ namespace dapp_nnc
                 Info fromInfo = getInfo(from);
                 var from_value = fromInfo.balance;
                 if (from_value < value) return false;
-                //var canClaim = getCanClaim(fromInfo.block, value);
+                var canClaim = getCanClaim(fromInfo.block, value);
                 fromInfo.cancaim += 0;
                 fromInfo.block = height;
                 fromInfo.balance = from_value - value;
@@ -116,7 +130,7 @@ namespace dapp_nnc
             {
                 var keyTo = new byte[] { 0x11 }.Concat(to);
                 Info toInfo = getInfo(to);
-                //var canClaim = getCanClaim(toInfo.block, value);
+                var canClaim = getCanClaim(toInfo.block, value);
                 toInfo.cancaim += 0;
                 toInfo.block = height;
                 toInfo.balance += value;
@@ -158,9 +172,7 @@ namespace dapp_nnc
         {
             //获取上一个有完整记录的块的记录值
             CoinPoolInfo coinPoolInfo = Helper.Deserialize(Storage.Get(Storage.CurrentContext, "CoinPoolInfo")) as CoinPoolInfo;
-            BigInteger endHeight = 0;
-            if (coinPoolInfo != null)
-                endHeight = coinPoolInfo.fullblock;
+            var endHeight = coinPoolInfo.fullblock;
             var key_EndHeight = new byte[] { 0x12 }.Concat(endHeight.AsByteArray().Concat(quadZero).Range(0, 4));
             var totalMoney_end = Storage.Get(Storage.CurrentContext, key_EndHeight).AsBigInteger();
             //获取上一次领奖的块的总系统费 
@@ -211,6 +223,7 @@ namespace dapp_nnc
             //标记这个txid 已经处理过了
             Storage.Put(Storage.CurrentContext, new byte[] { 0x13}.Concat(txid),1);
 
+            //判断是不是开始了一个新的高度计算总系统费
             if (coinPoolInfo.lastblock < cur_height)
             {
                 coinPoolInfo.fullblock = coinPoolInfo.lastblock;
