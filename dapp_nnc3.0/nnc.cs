@@ -14,14 +14,11 @@ namespace dapp_nnc
          * map(blockHeight,totoalMoney)   存储到当前块为止收取的所有系统费用  key = 0x12 + blockHeight
          * map(address,Info)   存储地址信息   key = 0x11+address
          * map("CoinPoolInfo",CoinPoolInfo) 存储奖池的信息   key = "CoinPoolInfo"
+         * map(txid,!0) 存储奖池的信息   key = 0x13+txid
         */
         public delegate void deleTransfer(byte[] from, byte[] to, BigInteger value);
         [DisplayName("transfer")]
         public static event deleTransfer Transferred;
-
-        public delegate void deleTest(Info info);
-        [DisplayName("justtest")]
-        public static event deleTest justTest;
 
         public class TransferInfo
         {
@@ -102,9 +99,9 @@ namespace dapp_nnc
             var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
             if (curMoney == 0)
             {
-                CoinPoolInfo coinPoolInfo = Helper.Deserialize(Storage.Get(Storage.CurrentContext, "CoinPoolInfo")) as CoinPoolInfo;
+                CoinPoolInfo coinPoolInfo = getCoinPoolInfo() ;
                 //获取上一个有记录的块的高度  不一定每个块都有数据
-                var preHeight = coinPoolInfo.fullblock;
+                var preHeight = coinPoolInfo.lastblock;
                 //获取该块的totalmoney
                 var key_PreHeight = new byte[] { 0x12 }.Concat(preHeight.AsByteArray().Concat(quadZero).Range(0, 4));
                 var preMoney = Storage.Get(Storage.CurrentContext, key_PreHeight).AsBigInteger();
@@ -118,8 +115,8 @@ namespace dapp_nnc
                 Info fromInfo = getInfo(from);
                 var from_value = fromInfo.balance;
                 if (from_value < value) return false;
-                var canClaim = getCanClaim(fromInfo.block, value);
-                fromInfo.cancaim += 0;
+                var canClaim = getCanClaim(height,fromInfo.block, from_value);
+                fromInfo.cancaim += canClaim;
                 fromInfo.block = height;
                 fromInfo.balance = from_value - value;
                 //更新from的info值
@@ -130,8 +127,8 @@ namespace dapp_nnc
             {
                 var keyTo = new byte[] { 0x11 }.Concat(to);
                 Info toInfo = getInfo(to);
-                var canClaim = getCanClaim(toInfo.block, value);
-                toInfo.cancaim += 0;
+                var canClaim = getCanClaim(height,toInfo.block, value);
+                toInfo.cancaim += canClaim;
                 toInfo.block = height;
                 toInfo.balance += value;
                 //更新to的info值
@@ -168,15 +165,25 @@ namespace dapp_nnc
         /// <param name="blockHeight">上次claim的高度</param>
         /// <param name="value">这次的交易值</param>
         /// <returns>可以领取的值</returns>
-        private static BigInteger getCanClaim(BigInteger blockHeight,BigInteger value)
+        private static BigInteger getCanClaim(BigInteger curHeight, BigInteger preClaimHeight,BigInteger value)
         {
             //获取上一个有完整记录的块的记录值
-            CoinPoolInfo coinPoolInfo = Helper.Deserialize(Storage.Get(Storage.CurrentContext, "CoinPoolInfo")) as CoinPoolInfo;
-            var endHeight = coinPoolInfo.fullblock;
+            CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
+            var fullblockHeight = coinPoolInfo.fullblock;
+            var lastblockHeight = coinPoolInfo.lastblock;
+            var endHeight = fullblockHeight;
+            if (curHeight > lastblockHeight) //如果当前高度大于lastblock  证明lastblock的记录已经完成  把last赋值给full
+            {
+                endHeight = lastblockHeight;
+                coinPoolInfo.fullblock = lastblockHeight;
+                coinPoolInfo.lastblock = curHeight;
+                Storage.Put(Storage.CurrentContext, "CoinPoolInfo", Helper.Serialize(coinPoolInfo));
+            }
+
             var key_EndHeight = new byte[] { 0x12 }.Concat(endHeight.AsByteArray().Concat(quadZero).Range(0, 4));
             var totalMoney_end = Storage.Get(Storage.CurrentContext, key_EndHeight).AsBigInteger();
             //获取上一次领奖的块的总系统费 
-            var key_StartHeight = new byte[] { 0x12 }.Concat(blockHeight.AsByteArray().Concat(quadZero).Range(0, 4));
+            var key_StartHeight = new byte[] { 0x12 }.Concat(preClaimHeight.AsByteArray().Concat(quadZero).Range(0, 4));
             //start == end  不领取
             if (key_EndHeight == key_StartHeight) return 0;
             var totalMoney_start = Storage.Get(Storage.CurrentContext, key_StartHeight).AsBigInteger();
@@ -185,10 +192,15 @@ namespace dapp_nnc
             return canclaim;
         }
 
+
+        /*
+        每一个块存储的是目前为止所有收到的系统费用    先判断当前高度大于lastblock的高度  就把lastblock赋值给fullblock  lastblock=当前高度
+        如果没有则加上之前的所有费用记录下来
+        如果有记录 就直接+=
+        */
         private static bool useGas(byte[] txid)
         {
-            TransferInfo transferInfo =  getTxInfo(txid);
-            if (transferInfo == null) return false;
+            TransferInfo transferInfo = getTxInfo(txid);
             if (transferInfo.value <= 0) return false;
             if (transferInfo.to.AsBigInteger() != ExecutionEngine.ExecutingScriptHash.AsBigInteger()) return false;
 
@@ -200,36 +212,30 @@ namespace dapp_nnc
             var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
             BigInteger totalMoney = 0;
 
-            /*
-            每一个块存储的是目前为止所有收到的系统费用    先判断当前高度有没有记录数据  如果没有则加上之前的所有费用记录下来
-            如果有记录 就直接+=
-            */
-            CoinPoolInfo coinPoolInfo = Helper.Deserialize(Storage.Get(Storage.CurrentContext, "CoinPoolInfo")) as CoinPoolInfo;
-            if (curMoney == 0)
+            CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
+            if (coinPoolInfo.lastblock < cur_height)
             {
-                //获取上一个有记录的块的高度  不一定每个块都有数据
-                var preHeight = coinPoolInfo.fullblock;
+                var preHeight = coinPoolInfo.lastblock;
+
                 //获取该块的totalmoney
                 var key_PreHeight = new byte[] { 0x12 }.Concat(preHeight.AsByteArray().Concat(quadZero).Range(0, 4));
                 var preMoney = Storage.Get(Storage.CurrentContext, key_PreHeight).AsBigInteger();
                 totalMoney = preMoney + transferInfo.value;
+
+                coinPoolInfo.fullblock = coinPoolInfo.lastblock;
+                coinPoolInfo.lastblock = cur_height;
             }
             else
             {
                 totalMoney = curMoney + transferInfo.value;
             }
 
+            //记录当前高度的系统费
             Storage.Put(Storage.CurrentContext, key_CurHeight, totalMoney);
             //标记这个txid 已经处理过了
             Storage.Put(Storage.CurrentContext, new byte[] { 0x13}.Concat(txid),1);
-
-            //判断是不是开始了一个新的高度计算总系统费
-            if (coinPoolInfo.lastblock < cur_height)
-            {
-                coinPoolInfo.fullblock = coinPoolInfo.lastblock;
-                coinPoolInfo.lastblock = cur_height;
-                Storage.Put(Storage.CurrentContext, "CoinPoolInfo", Helper.Serialize(coinPoolInfo));
-            }
+            //更新coinpoolinfo的值
+            Storage.Put(Storage.CurrentContext, "CoinPoolInfo", Helper.Serialize(coinPoolInfo));
             return true;
         }
 
@@ -244,14 +250,38 @@ namespace dapp_nnc
                 if (((object[])info).Length == 3)
                     return info as TransferInfo;
             }
-            return null;
+            var transferInfo = new TransferInfo();
+            transferInfo.value = 0;
+            return transferInfo;
+        }
+
+
+        private static CoinPoolInfo getCoinPoolInfo()
+        {
+            byte[] data = Storage.Get(Storage.CurrentContext, "CoinPoolInfo");
+            if (data.Length > 0)
+                return Helper.Deserialize(data) as CoinPoolInfo;
+            else
+            {
+                var coinPoolInfo = new CoinPoolInfo();
+                coinPoolInfo.fullblock = 0;
+                coinPoolInfo.lastblock = 0;
+                return coinPoolInfo;
+            }
         }
 
 
         public static object getTotalMoney(byte[] height)
         {
-            var key_Height = new byte[] { 0x12 }.Concat(height);
+            var key_Height = new byte[] { 0x12 }.Concat(height.Concat(quadZero).Range(0, 4));
             var totalmoney = Storage.Get(Storage.CurrentContext, key_Height).AsBigInteger();
+            if (totalmoney == 0)
+            {
+                CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
+                var lastblock = coinPoolInfo.lastblock;
+                var key_fullblock = new byte[] { 0x12 }.Concat(lastblock.AsByteArray().Concat(quadZero).Range(0, 4));
+                totalmoney  = Storage.Get(Storage.CurrentContext, key_fullblock).AsBigInteger();
+            }
             return totalmoney;
         }
 
@@ -272,7 +302,7 @@ namespace dapp_nnc
         {
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                return true;
+                return Runtime.CheckWitness(superAdmin);
             }
             else if (Runtime.Trigger == TriggerType.VerificationR)
             {
@@ -328,6 +358,19 @@ namespace dapp_nnc
                     //如果有跳板调用，不让转
                     if (ExecutionEngine.EntryScriptHash.AsBigInteger() != callscript.AsBigInteger())
                         return false;
+                    return transfer(from, to, value);
+                }
+                if (method == "transfer_app")
+                {
+                    if (args.Length != 3) return false;
+                    byte[] from = (byte[])args[0];
+                    byte[] to = (byte[])args[1];
+                    BigInteger value = (BigInteger)args[2];
+
+                    //如果from 不是 传入脚本 不让转
+                    if (from.AsBigInteger() != callscript.AsBigInteger())
+                        return false;
+
                     return transfer(from, to, value);
                 }
                 if (method == "useGas")
