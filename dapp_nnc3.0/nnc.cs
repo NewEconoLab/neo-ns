@@ -94,18 +94,16 @@ namespace dapp_nnc
             var height = Blockchain.GetHeight();
 
             //为了保护每个有交易的区块高度都有系统费的值   多了1.x个gas
-            var bytes_CurHeight = ((BigInteger)height).AsByteArray().Concat(quadZero).Range(0, 4);
-            var key_CurHeight = new byte[] { 0x12 }.Concat(bytes_CurHeight);
-            var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
+            var curMoney = getCurMoney(height);
+            CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
             if (curMoney == 0)
             {
-                CoinPoolInfo coinPoolInfo = getCoinPoolInfo() ;
-                //获取上一个有记录的块的高度  不一定每个块都有数据
-                var preHeight = coinPoolInfo.lastblock;
-                //获取该块的totalmoney
-                var key_PreHeight = new byte[] { 0x12 }.Concat(preHeight.AsByteArray().Concat(quadZero).Range(0, 4));
-                var preMoney = Storage.Get(Storage.CurrentContext, key_PreHeight).AsBigInteger();
-                Storage.Put(Storage.CurrentContext, key_CurHeight, preMoney);
+                curMoney = getCurMoney(coinPoolInfo.lastblock);
+                var bytes_CurHeight = ((BigInteger)height).AsByteArray().Concat(quadZero).Range(0, 4);
+                var key_CurHeight = new byte[] { 0x12 }.Concat(bytes_CurHeight);
+                Storage.Put(Storage.CurrentContext, key_CurHeight, curMoney);
+                //这个地方可以不更新coinpoolinfo的值   不更新没有影响
+                updateCoinPoolInfo(coinPoolInfo, height);
             }
 
             //付款方
@@ -115,24 +113,19 @@ namespace dapp_nnc
                 Info fromInfo = getInfo(from);
                 var from_value = fromInfo.balance;
                 if (from_value < value) return false;
-                var canClaim = getCanClaim(height,fromInfo.block, from_value);
-                fromInfo.cancaim += canClaim;
-                fromInfo.block = height;
+                fromInfo = updateCanClaim(height,fromInfo, from_value, value);
                 fromInfo.balance = from_value - value;
-                //更新from的info值
-                Storage.Put(Storage.CurrentContext,keyFrom,Helper.Serialize(fromInfo));
+                Storage.Put(Storage.CurrentContext, keyFrom, Helper.Serialize(fromInfo));
             }
             //收款方
             if (to.Length > 0)
             {
                 var keyTo = new byte[] { 0x11 }.Concat(to);
                 Info toInfo = getInfo(to);
-                var canClaim = getCanClaim(height,toInfo.block, value);
-                toInfo.cancaim += canClaim;
-                toInfo.block = height;
-                toInfo.balance += value;
-                //更新to的info值
-                Storage.Put(Storage.CurrentContext, keyTo, Helper.Serialize(toInfo));
+                var to_value = toInfo.balance;
+                toInfo = updateCanClaim(height,toInfo, to_value, value);
+                toInfo.balance = to_value + value;
+                Storage.Put(Storage.CurrentContext,keyTo,Helper.Serialize(toInfo));
             }
             //notify
             Transferred(from, to, value);
@@ -163,9 +156,9 @@ namespace dapp_nnc
         /// 获取转账的这笔钱能分到的分红  [start,end)
         /// </summary>
         /// <param name="blockHeight">上次claim的高度</param>
-        /// <param name="value">这次的交易值</param>
+        /// <param name="value">账户拥有的nnc数量</param>
         /// <returns>可以领取的值</returns>
-        private static BigInteger getCanClaim(BigInteger curHeight, BigInteger preClaimHeight,BigInteger value)
+        private static Info updateCanClaim(BigInteger curHeight, Info info,BigInteger balance, BigInteger value)
         {
             //获取上一个有完整记录的块的记录值
             CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
@@ -175,21 +168,22 @@ namespace dapp_nnc
             if (curHeight > lastblockHeight) //如果当前高度大于lastblock  证明lastblock的记录已经完成  把last赋值给full
             {
                 endHeight = lastblockHeight;
-                coinPoolInfo.fullblock = lastblockHeight;
-                coinPoolInfo.lastblock = curHeight;
-                Storage.Put(Storage.CurrentContext, "CoinPoolInfo", Helper.Serialize(coinPoolInfo));
             }
 
             var key_EndHeight = new byte[] { 0x12 }.Concat(endHeight.AsByteArray().Concat(quadZero).Range(0, 4));
             var totalMoney_end = Storage.Get(Storage.CurrentContext, key_EndHeight).AsBigInteger();
             //获取上一次领奖的块的总系统费 
-            var key_StartHeight = new byte[] { 0x12 }.Concat(preClaimHeight.AsByteArray().Concat(quadZero).Range(0, 4));
+            var key_StartHeight = new byte[] { 0x12 }.Concat(((BigInteger)info.block).AsByteArray().Concat(quadZero).Range(0, 4));
             //start == end  不领取
-            if (key_EndHeight == key_StartHeight) return 0;
+            if (key_EndHeight == key_StartHeight) return info;
             var totalMoney_start = Storage.Get(Storage.CurrentContext, key_StartHeight).AsBigInteger();
             //(totalMoneyB-totalMoneyA)*info.balance/发行量 就是这个块现在的余额可以领取的分红
-            var canclaim = (totalMoney_end - totalMoney_start) * value / totalCoin;
-            return canclaim;
+            var canclaim = (totalMoney_end - totalMoney_start) * balance / totalCoin;
+
+
+            info.cancaim += canclaim;
+            info.block = (uint)endHeight;
+            return info;
         }
 
 
@@ -206,29 +200,21 @@ namespace dapp_nnc
 
             //获取当前块的高度
             uint cur_height = Blockchain.GetHeight();
-            //先获取当前块的值
             var bytes_CurHeight = ((BigInteger)cur_height).AsByteArray().Concat(quadZero).Range(0, 4);
             var key_CurHeight = new byte[] { 0x12 }.Concat(bytes_CurHeight);
-            var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
-            BigInteger totalMoney = 0;
-
+            //先获取当前块所能统计到的总系统费
+            var curMoney = getCurMoney((BigInteger)cur_height);
+            //获取当前的coinpoolinfo的值
             CoinPoolInfo coinPoolInfo = getCoinPoolInfo();
-            if (coinPoolInfo.lastblock < cur_height)
+            //如果curmoney是0  代表是新高度   总系统费拿coinpool里的lastblock的高度
+            if (curMoney == 0)
             {
-                var preHeight = coinPoolInfo.lastblock;
-
-                //获取该块的totalmoney
-                var key_PreHeight = new byte[] { 0x12 }.Concat(preHeight.AsByteArray().Concat(quadZero).Range(0, 4));
-                var preMoney = Storage.Get(Storage.CurrentContext, key_PreHeight).AsBigInteger();
-                totalMoney = preMoney + transferInfo.value;
-
-                coinPoolInfo.fullblock = coinPoolInfo.lastblock;
-                coinPoolInfo.lastblock = cur_height;
+                curMoney = getCurMoney(coinPoolInfo.lastblock);
+                //新高度就需要更新coinpool的值
+                updateCoinPoolInfo(coinPoolInfo,(BigInteger)cur_height);
             }
-            else
-            {
-                totalMoney = curMoney + transferInfo.value;
-            }
+
+            BigInteger totalMoney = curMoney + transferInfo.value;
 
             //记录当前高度的系统费
             Storage.Put(Storage.CurrentContext, key_CurHeight, totalMoney);
@@ -270,6 +256,21 @@ namespace dapp_nnc
             }
         }
 
+        private static void updateCoinPoolInfo(CoinPoolInfo coinPoolInfo, BigInteger height)
+        {
+            coinPoolInfo.fullblock = coinPoolInfo.lastblock;
+            coinPoolInfo.lastblock = height;
+            Storage.Put(Storage.CurrentContext,"CoinPoolInfo", Helper.Serialize(coinPoolInfo));
+        }
+
+        private static BigInteger getCurMoney(BigInteger cur_height)
+        {
+            var bytes_CurHeight = (cur_height).AsByteArray().Concat(quadZero).Range(0, 4);
+            var key_CurHeight = new byte[] { 0x12 }.Concat(bytes_CurHeight);
+            var curMoney = Storage.Get(Storage.CurrentContext, key_CurHeight).AsBigInteger();
+            return curMoney;
+        }
+
 
         public static object getTotalMoney(byte[] height)
         {
@@ -300,6 +301,8 @@ namespace dapp_nnc
 
         public static object Main(string method , object[] args)
         {
+            var magicstr = "2018-06-05";
+
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
                 return Runtime.CheckWitness(superAdmin);
