@@ -59,11 +59,11 @@ namespace dapp_nnc
         {
             return "NNC";
         }
-        private const ulong factor = 1;
-        private const ulong totalCoin = 100000000 * factor;
+        private const ulong factor = 100;//精度2
+        private const ulong totalCoin =10 * 100000000 * factor;//发行量10亿
         public static byte decimals()
         {
-            return 0;
+            return 2;
         }
 
         //nnc 发行总量
@@ -398,7 +398,7 @@ namespace dapp_nnc
                 }
 
                 #region 升级合约,耗费490,仅限管理员
-                if (method == "migrate")
+                if (method == "upgrade")
                 {
                     //不是管理员 不能操作
                     if (!Runtime.CheckWitness(superAdmin))
