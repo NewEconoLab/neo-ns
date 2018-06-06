@@ -56,12 +56,12 @@ namespace DApp
         [Appcall("e52a08c20986332ad8dccf9ded38cc493878064a")]
         static extern object sgasCall(string method, object[] arr);
 
-        static readonly byte[]  coinpool = Helper.ToScriptHash("ALKJxhqWJXgAAKCWE3soXAarPVeB3mGBvN");
+        static readonly byte[] nnc = Helper.HexToBytes("0x6102a56793c3dc6204eb70f988c46d8e7d25eaa1");//ToScriptHash("ALKJxhqWJXgAAKCWE3soXAarPVeB3mGBvN");
 
         // coinpool 合约地址
         // 竞拍手续费扣除
-        [Appcall("7c27d1d3fb737dd2743fb05a6d97614394b89c35")]
-        static extern object coinpoolCall(string method, object[] arr);
+        [Appcall("6102a56793c3dc6204eb70f988c46d8e7d25eaa1")]
+        static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
         //域名转hash算法
@@ -509,14 +509,14 @@ namespace DApp
             // 把扣的钱丢进coinpool
             object[] _param = new object[3];
             _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-            _param[1] = coinpool; //to; //to
+            _param[1] = nnc; //to; //to
             _param[2] = use.ToByteArray();//value
 
             object[] id = new object[1];
             id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
             sgasCall("transfer_app", _param);
-            coinpoolCall("setSGASIn", id);
+            nncCall("useGas", id);
 
             return true;
 
@@ -782,14 +782,14 @@ namespace DApp
                 // 把扣的钱丢进coinpool
                 object[] _param = new object[3];
                 _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-                _param[1] = coinpool; //to
+                _param[1] = nnc; //to
                 _param[2] = b.ToByteArray();//value
 
                 object[] id = new object[1];
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
                 sgasCall("transfer_app", _param);
-                coinpoolCall("setSGASIn", id);
+                nncCall("useGas", id);
             }
             #endregion
 
