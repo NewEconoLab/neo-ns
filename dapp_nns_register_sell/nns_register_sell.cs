@@ -48,7 +48,7 @@ namespace DApp
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
         //域名中心跳板合约地址
-        [Appcall("ee46b4f6d2073381dc61ae74099ccf3a56e38dd1")]
+        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
@@ -60,7 +60,7 @@ namespace DApp
 
         // coinpool 合约地址
         // 竞拍手续费扣除
-        [Appcall("7c27d1d3fb737dd2743fb05a6d97614394b89c35")]
+        [Appcall("7054c7e606f7abd353838d2b03190d302f0db938")]
         static extern object coinpoolCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -289,7 +289,7 @@ namespace DApp
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
             value = value.Concat(datalen).Concat(data);
 
-
+            onSellingState(state);
             Storage.Put(Storage.CurrentContext, key, value);
 
         }
@@ -342,7 +342,6 @@ namespace DApp
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
             saveSellingState(sell);
-            onSellingState(sell);
             return true;
         }
         public static BigInteger balanceOfSelling(byte[] who, byte[] txid)
@@ -436,7 +435,6 @@ namespace DApp
             {
                 selling.endBlock = Blockchain.GetHeight();
                 saveSellingState(selling);
-                onSellingState(selling);
                 return true;
             }
 
@@ -445,7 +443,6 @@ namespace DApp
             {
                 selling.endBlock = Blockchain.GetHeight();
                 saveSellingState(selling);
-                onSellingState(selling);
                 return true;
             }
 
@@ -458,7 +455,6 @@ namespace DApp
             {
                 selling.endBlock = nowheader.Index; ;//突然死亡,无法出价了
                 saveSellingState(selling);
-                onSellingState(selling);
                 return true;
             }
 
@@ -516,7 +512,7 @@ namespace DApp
             id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
             sgasCall("transfer_app", _param);
-            coinpoolCall("setSGASIn", id);
+            coinpoolCall("useGas", id);
 
             return true;
 
@@ -789,13 +785,13 @@ namespace DApp
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
                 sgasCall("transfer_app", _param);
-                coinpoolCall("setSGASIn", id);
+                coinpoolCall("useGas", id);
             }
             #endregion
 
 
             #region 升级合约,耗费490,仅限管理员
-            if (method == "migrate")
+            if (method == "upgrade")
             {
                 //不是管理员 不能操作
                 if (!Runtime.CheckWitness(superAdmin))

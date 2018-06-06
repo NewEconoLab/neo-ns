@@ -46,7 +46,7 @@ namespace dapp_nnc
 
         // sgas合约地址
         // sgas转账
-        [Appcall("e52a08c20986332ad8dccf9ded38cc493878064a")]
+        [Appcall("ed022d586745e3b0d3654ac86aa81ca88d68c0a2")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[] quadZero = new byte[] { 0, 0, 0, 0 };

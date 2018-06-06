@@ -193,7 +193,7 @@ namespace Nep5_Contract
 
 
                 #region 升级合约,耗费490,仅限管理员
-                if (method == "migrate")
+                if (method == "upgrade")
                 {
                     //不是管理员 不能操作
                     if (!Runtime.CheckWitness(superAdmin))

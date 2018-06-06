@@ -35,9 +35,9 @@ namespace DApp
         //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.ToScriptHash("AP6iSnCvbSSPEo15hEW296EX9XhLnuzwUi");//注意 script_hash 是反序的
-                                                                                                        //跳板合约0x954f285a93eed7b4aed9396a7806a5812f1a5950
-                                                                                                        //地址AP6iSnCvbSSPEo15hEW296EX9XhLnuzwUi
+        static readonly byte[] jumpContract = Helper.ToScriptHash("AKvRort7W6qQJ89vH4ZvgF62xgcsjyAiTi");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x537758fbe85505801faa7d7d7b75b37686ad7e2d
+                                                                                                        //地址AKvRort7W6qQJ89vH4ZvgF62xgcsjyAiTi
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
@@ -657,8 +657,8 @@ namespace DApp
                 return new byte[] { 0x00 };
             }
             #endregion
-            #region 升级合约,耗费590,仅限管理员
-            if (method == "migrate")
+            #region 升级合约,耗费490,仅限管理员
+            if (method == "upgrade")
             {
                 //不是管理员 不能操作
                 if (!Runtime.CheckWitness(superAdmin))

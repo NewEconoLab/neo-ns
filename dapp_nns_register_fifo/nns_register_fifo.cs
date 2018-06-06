@@ -18,7 +18,7 @@ namespace DApp
         const int secondperday = 24 * 3600;//一天
         const int domaindays = 7;//租一次给几天
 
-        [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
+        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
         static extern object rootCall(string method, object[] arr);
 
         //static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
@@ -186,8 +186,8 @@ namespace DApp
                 return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
 
 
-            #region 升级合约,耗费590,仅限管理员
-            if (method == "migrate")
+            #region 升级合约,耗费490,仅限管理员
+            if (method == "upgrade")
             {
                 //不是管理员 不能操作
                 if (!Runtime.CheckWitness(superAdmin))

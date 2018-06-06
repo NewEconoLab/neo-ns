@@ -12,7 +12,7 @@ namespace DApp
         //静态解析器实现
         //dict《domainhash+protocol,data>
         //dict<"调用nns查询权限 只有是"
-        [Appcall("954f285a93eed7b4aed9396a7806a5812f1a5950")]
+        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
         static extern object rootCall(string method, object[] arr);
 
         static readonly byte[] superAdmin = Neo.SmartContract.Framework.Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
@@ -91,7 +91,7 @@ namespace DApp
 
 
             #region 升级合约,耗费490,仅限管理员
-            if (method == "migrate")
+            if (method == "upgrade")
             {
                 //不是管理员 不能操作
                 if (!Runtime.CheckWitness(superAdmin))
