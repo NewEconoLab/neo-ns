@@ -53,14 +53,14 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("e52a08c20986332ad8dccf9ded38cc493878064a")]
+        [Appcall("c7816d11287c08135f4e5f907af9e39754910ba3")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[]  nnc = Helper.ToScriptHash("ALwoAqwKEegWgLsSJq7XLERL8dvsB45LQV");
 
         // nnc 合约地址
         // 竞拍手续费扣除
-        [Appcall("7054c7e606f7abd353838d2b03190d302f0db938")]
+        [Appcall("d8fa0cfdd54493dfc9e908b26ba165605363137b")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法

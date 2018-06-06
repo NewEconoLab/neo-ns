@@ -592,7 +592,7 @@ namespace DApp
         //}
         public static object Main(string method, object[] args)
         {
-            string magic = "20180415";
+            string magic = "20180606";
             //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
             var callscript = ExecutionEngine.CallingScriptHash;
 
