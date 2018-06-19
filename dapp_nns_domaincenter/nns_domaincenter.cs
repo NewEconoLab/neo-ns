@@ -35,9 +35,9 @@ namespace DApp
         //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.ToScriptHash("AKvRort7W6qQJ89vH4ZvgF62xgcsjyAiTi");//注意 script_hash 是反序的
-                                                                                                        //跳板合约0x537758fbe85505801faa7d7d7b75b37686ad7e2d
-                                                                                                        //地址AKvRort7W6qQJ89vH4ZvgF62xgcsjyAiTi
+        static readonly byte[] jumpContract = Helper.ToScriptHash("ALgQorKtWwaKAkbpQGbP9jFdvHq5iEXAJh");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x31f0f24160c2158704ecb09ecfd0ab7d2f25d035
+                                                                                                        //地址ALgQorKtWwaKAkbpQGbP9jFdvHq5iEXAJh
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
@@ -592,180 +592,191 @@ namespace DApp
         //}
         public static object Main(string method, object[] args)
         {
-            string magic = "20180606";
-            //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
-            var callscript = ExecutionEngine.CallingScriptHash;
-
-
-            #region 通用功能,不需要权限验证
-            if (method == "name")
+            if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                return "NNS DomainCenter";
+                return Runtime.CheckWitness(superAdmin);
             }
-            if (method == "getDomain")
+            else if (Runtime.Trigger == TriggerType.VerificationR)
             {
-                var hash = (byte[])args[0];
-                return getDomain(hash);
-            }
-            if (method == "getOwnerInfo")
-            {
-                return getOwnerInfo((byte[])args[0]);
-            }
-            //if (method == "getNameInfo")
-            //{
-            //    return getNameInfo((byte[])args[0]);
-            //}
-            if (method == "nameHash")
-            {
-                var name = (string)args[0];
-                return nameHash(name);
-            }
-            if (method == "nameHashSub")
-            {
-                var rootHash = (byte[])args[0];
-                var subdomain = (string)args[1];
-                return nameHashSub(rootHash, subdomain);
-            }
-            if (method == "nameHashArray")
-            {
-                string[] list = (string[])args[0];
-                return nameHashArray(list);
-            }
-            if (method == "resolve")
-            {
-                string protocol = (string)args[0];
-                var rootHash = (byte[])args[1];
-                var subdomain = (string)args[2];
-                return resolve(protocol, rootHash, subdomain);
-            }
-            if (method == "resolveFull")
-            {
-                string protocol = (string)args[0];
-                string[] list = (string[])args[0];
-                return resolveFull(protocol, list);
-            }
-            #endregion
-            #region 配置根合约注册器,仅限管理员
-            if (method == "initRoot")
-            {
-                if (Runtime.CheckWitness(superAdmin))
-                {
-                    string rootdomain = (string)args[0];
-                    byte[] register = (byte[])args[1];
-                    return initRoot(rootdomain, register);
-                }
-                return new byte[] { 0x00 };
-            }
-            #endregion
-            #region 升级合约,耗费490,仅限管理员
-            if (method == "upgrade")
-            {
-                //不是管理员 不能操作
-                if (!Runtime.CheckWitness(superAdmin))
-                    return false;
-
-                if (args.Length != 1 && args.Length != 9)
-                    return false;
-
-                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
-                byte[] new_script = (byte[])args[0];
-                //如果传入的脚本一样 不继续操作
-                if (script == new_script)
-                    return false;
-
-                byte[] parameter_list = new byte[] { 0x07, 0x10 };
-                byte return_type = 0x05;
-                bool need_storage = (bool)(object)01;
-                string name = "domaincenter";
-                string version = "1";
-                string author = "xx";
-                string email = "xx";
-                string description = "域名中心";
-
-                if (args.Length == 9)
-                {
-                    parameter_list = (byte[])args[1];
-                    return_type = (byte)args[2];
-                    need_storage = (bool)args[3];
-                    name = (string)args[4];
-                    version = (string)args[5];
-                    author = (string)args[6];
-                    email = (string)args[7];
-                    description = (string)args[8];
-                }
-                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
                 return true;
             }
-            #endregion
-            #region 所有者接口 直接调用&智能合约
-            if (method == "owner_SetOwner")
+            else if (Runtime.Trigger == TriggerType.Application)
             {
-                int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
-                if (n == 1 || n == 2)
-                {
-                    return owner_SetOwner((byte[])args[1], (byte[])args[2]);
-                }
-                if (n == 3 || n == 4)
-                {
-                    return owner_SetOwner((byte[])args[2], (byte[])args[3]);
-                }
-                return new byte[] { 0x00 };
+                string magic = "20180606";
+                //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
+                var callscript = ExecutionEngine.CallingScriptHash;
 
-            }
-            if (method == "owner_SetRegister")
-            {
-                int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
-                if (n == 1 || n == 2)
+
+                #region 通用功能,不需要权限验证
+                if (method == "name")
                 {
-                    return owner_SetRegister((byte[])args[1], (byte[])args[2]);
+                    return "NNS DomainCenter";
                 }
-                if (n == 3 || n == 4)
+                if (method == "getDomain")
                 {
-                    return owner_SetRegister((byte[])args[2], (byte[])args[3]);
+                    var hash = (byte[])args[0];
+                    return getDomain(hash);
                 }
-                return new byte[] { 0x00 };
-            }
-            if (method == "owner_SetResolver")
-            {
-                int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
-                if (n == 1 || n == 2)
+                if (method == "getOwnerInfo")
                 {
-                    return owner_SetResolver((byte[])args[1], (byte[])args[2]);
+                    return getOwnerInfo((byte[])args[0]);
                 }
-                if (n == 3 || n == 4)
+                //if (method == "getNameInfo")
+                //{
+                //    return getNameInfo((byte[])args[0]);
+                //}
+                if (method == "nameHash")
                 {
-                    return owner_SetResolver((byte[])args[2], (byte[])args[3]);
+                    var name = (string)args[0];
+                    return nameHash(name);
                 }
-                return new byte[] { 0x00 };
-            }
-            #endregion
-            #region 注册器接口 仅智能合约
-            if (method == "register_SetSubdomainOwner")
-            {
-                if (callscript.AsBigInteger() == jumpContract.AsBigInteger())
-                {//如果是跳板合约调用
-                    byte[] _callscript = (byte[])args[0];
-                    byte[] nnshash = (byte[])args[1];
-                    var pinfo = getOwnerInfo(nnshash);
-                    //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-                    if (_callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                if (method == "nameHashSub")
+                {
+                    var rootHash = (byte[])args[0];
+                    var subdomain = (string)args[1];
+                    return nameHashSub(rootHash, subdomain);
+                }
+                if (method == "nameHashArray")
+                {
+                    string[] list = (string[])args[0];
+                    return nameHashArray(list);
+                }
+                if (method == "resolve")
+                {
+                    string protocol = (string)args[0];
+                    var rootHash = (byte[])args[1];
+                    var subdomain = (string)args[2];
+                    return resolve(protocol, rootHash, subdomain);
+                }
+                if (method == "resolveFull")
+                {
+                    string protocol = (string)args[0];
+                    string[] list = (string[])args[0];
+                    return resolveFull(protocol, list);
+                }
+                #endregion
+                #region 配置根合约注册器,仅限管理员
+                if (method == "initRoot")
+                {
+                    if (Runtime.CheckWitness(superAdmin))
                     {
-                        return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger(), pinfo);
+                        string rootdomain = (string)args[0];
+                        byte[] register = (byte[])args[1];
+                        return initRoot(rootdomain, register);
                     }
+                    return new byte[] { 0x00 };
                 }
-                else
+                #endregion
+                #region 升级合约,耗费490,仅限管理员
+                if (method == "upgrade")
                 {
-                    byte[] nnshash = (byte[])args[0];
-                    var pinfo = getOwnerInfo(nnshash);
-                    //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-                    if (callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage = (bool)(object)01;
+                    string name = "domaincenter";
+                    string version = "1";
+                    string author = "NEL";
+                    string email = "0";
+                    string description = "域名中心";
+
+                    if (args.Length == 9)
                     {
-                        return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger(), pinfo);
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
                     }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
                 }
-                return new byte[] { 0x00 };
+                #endregion
+                #region 所有者接口 直接调用&智能合约
+                if (method == "owner_SetOwner")
+                {
+                    int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
+                    if (n == 1 || n == 2)
+                    {
+                        return owner_SetOwner((byte[])args[1], (byte[])args[2]);
+                    }
+                    if (n == 3 || n == 4)
+                    {
+                        return owner_SetOwner((byte[])args[2], (byte[])args[3]);
+                    }
+                    return new byte[] { 0x00 };
+
+                }
+                if (method == "owner_SetRegister")
+                {
+                    int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
+                    if (n == 1 || n == 2)
+                    {
+                        return owner_SetRegister((byte[])args[1], (byte[])args[2]);
+                    }
+                    if (n == 3 || n == 4)
+                    {
+                        return owner_SetRegister((byte[])args[2], (byte[])args[3]);
+                    }
+                    return new byte[] { 0x00 };
+                }
+                if (method == "owner_SetResolver")
+                {
+                    int n = CheckOwner(callscript, (byte[])args[0], (byte[])args[1], (byte[])args[2]);
+                    if (n == 1 || n == 2)
+                    {
+                        return owner_SetResolver((byte[])args[1], (byte[])args[2]);
+                    }
+                    if (n == 3 || n == 4)
+                    {
+                        return owner_SetResolver((byte[])args[2], (byte[])args[3]);
+                    }
+                    return new byte[] { 0x00 };
+                }
+                #endregion
+                #region 注册器接口 仅智能合约
+                if (method == "register_SetSubdomainOwner")
+                {
+                    if (callscript.AsBigInteger() == jumpContract.AsBigInteger())
+                    {//如果是跳板合约调用
+                        byte[] _callscript = (byte[])args[0];
+                        byte[] nnshash = (byte[])args[1];
+                        var pinfo = getOwnerInfo(nnshash);
+                        //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
+                        if (_callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                        {
+                            return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger(), pinfo);
+                        }
+                    }
+                    else
+                    {
+                        byte[] nnshash = (byte[])args[0];
+                        var pinfo = getOwnerInfo(nnshash);
+                        //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
+                        if (callscript.AsBigInteger() == pinfo.register.AsBigInteger())
+                        {
+                            return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger(), pinfo);
+                        }
+                    }
+                    return new byte[] { 0x00 };
+                }
+                #endregion
             }
-            #endregion
             return new byte[] { 0 };
         }
     }

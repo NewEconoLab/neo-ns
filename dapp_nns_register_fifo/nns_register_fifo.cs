@@ -18,7 +18,7 @@ namespace DApp
         const int secondperday = 24 * 3600;//一天
         const int domaindays = 7;//租一次给几天
 
-        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
+        [Appcall("31f0f24160c2158704ecb09ecfd0ab7d2f25d035")]
         static extern object rootCall(string method, object[] arr);
 
         //static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
@@ -119,6 +119,20 @@ namespace DApp
             //{
             //    return new byte[] { 0x00 };
             //}
+
+
+            //域名的有效性  只能是a~z 0~9 2~32长
+            if (subdomain.Length < 2 || subdomain.Length > 32)
+                return new byte[] { 0x00};
+            foreach (var c in subdomain)
+            {
+                if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')))
+                {
+                    return new byte[] { 0x00 };
+                }
+            }
+
+
             if (Runtime.CheckWitness(who) == false)
             {
                 return new byte[] { 0x00 };
@@ -177,56 +191,65 @@ namespace DApp
 
         public static object Main(string method, object[] args)
         {
-
-            ////随便调用
-            //if (method == "getSubOwner")
-            //    return getSubOwner((byte[])args[0], (string)args[1]);
-            //请求者调用
-            if (method == "requestSubDomain")
-                return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
-
-
-            #region 升级合约,耗费490,仅限管理员
-            if (method == "upgrade")
+            if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                //不是管理员 不能操作
-                if (!Runtime.CheckWitness(superAdmin))
-                    return false;
-
-                if (args.Length != 1 && args.Length != 9)
-                    return false;
-
-                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
-                byte[] new_script = (byte[])args[0];
-                //如果传入的脚本一样 不继续操作
-                if (script == new_script)
-                    return false;
-
-                byte[] parameter_list = new byte[] { 0x07, 0x10 };
-                byte return_type = 0x05;
-                bool need_storage = (bool)(object)01;
-                string name = "register_fifo";
-                string version = "1";
-                string author = "xx";
-                string email = "xx";
-                string description = "先到先得注册器";
-
-                if (args.Length == 9)
-                {
-                    parameter_list = (byte[])args[1];
-                    return_type = (byte)args[2];
-                    need_storage = (bool)args[3];
-                    name = (string)args[4];
-                    version = (string)args[5];
-                    author = (string)args[6];
-                    email = (string)args[7];
-                    description = (string)args[8];
-                }
-                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                return Runtime.CheckWitness(superAdmin);
+            }
+            else if (Runtime.Trigger == TriggerType.VerificationR)
+            {
                 return true;
             }
-            #endregion
+            else if(Runtime.Trigger == TriggerType.Application)
+            {
+                ////随便调用
+                //if (method == "getSubOwner")
+                //    return getSubOwner((byte[])args[0], (string)args[1]);
+                //请求者调用
+                if (method == "requestSubDomain")
+                    return requestSubDomain((byte[])args[0], (byte[])args[1], (string)args[2]);
 
+
+                #region 升级合约,耗费490,仅限管理员
+                if (method == "upgrade")
+                {
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage = (bool)(object)01;
+                    string name = "register_fifo";
+                    string version = "1";
+                    string author = "NEL";
+                    string email = "0";
+                    string description = "先到先得注册器";
+
+                    if (args.Length == 9)
+                    {
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
+                    }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
+                }
+                #endregion
+            }
             return new byte[] { 0 };
         }
     }

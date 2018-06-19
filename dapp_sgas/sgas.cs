@@ -320,7 +320,7 @@ namespace Nep5_Contract
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magic = "20180606";
+                string magic = "20180619";
 
                 //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
                 var callscript = ExecutionEngine.CallingScriptHash;
@@ -417,8 +417,8 @@ namespace Nep5_Contract
                     bool need_storage = (bool)(object)01;
                     string name = "sgas";
                     string version = "1";
-                    string author = "xx";
-                    string email = "xx";
+                    string author = "NEL";
+                    string email = "0";
                     string description = "gas与sgas的互换";
 
                     if (args.Length == 9)

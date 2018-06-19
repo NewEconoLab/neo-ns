@@ -46,7 +46,7 @@ namespace dapp_nnc
 
         // sgas合约地址
         // sgas转账
-        [Appcall("c7816d11287c08135f4e5f907af9e39754910ba3")]
+        [Appcall("a4d35ea30dc61878518c5070352e7c33006b1f28")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[] quadZero = new byte[] { 0, 0, 0, 0 };
@@ -301,7 +301,7 @@ namespace dapp_nnc
 
         public static object Main(string method , object[] args)
         {
-            var magicstr = "2018-06-05";
+            var magicstr = "2018-06-19";
 
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
@@ -421,8 +421,8 @@ namespace dapp_nnc
                     bool need_storage = (bool)(object)01;
                     string name = "nnc";
                     string version = "1";
-                    string author = "xx";
-                    string email = "xx";
+                    string author = "NEL";
+                    string email = "0";
                     string description = "nnc";
 
                     if (args.Length == 9)

@@ -19,108 +19,120 @@ namespace DApp
 
         public static object Main(string method, object[] args)
         {
-            string magicstr = "for nns test 002";
-            if (method == "_setTarget")
+            if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                if (Runtime.CheckWitness(superAdmin))
-                {
-                    Storage.Put(Storage.CurrentContext, "target", (byte[])args[0]);
-                    return new byte[] { 0x01 };
-                }
-                return new byte[] { 0x00 };
+                return Runtime.CheckWitness(superAdmin);
             }
-
-            var callscript = ExecutionEngine.CallingScriptHash;
-            byte[] target = Storage.Get(Storage.CurrentContext, "target");
-
-            #region 所有者接口 直接调用&智能合约
-            if (method == "owner_SetOwner")
+            else if (Runtime.Trigger == TriggerType.VerificationR)
             {
-                object[] newarg = new object[4];
-                newarg[0] = callscript;
-                newarg[1] = args[0];
-                newarg[2] = args[1];
-                newarg[3] = args[2];
-                deleDyncall dyncall = (deleDyncall)target.ToDelegate();
-                return dyncall(method, newarg);
-            }
-            if (method == "owner_SetRegister")
-            {
-                object[] newarg = new object[4];
-                newarg[0] = callscript;
-                newarg[1] = args[0];
-                newarg[2] = args[1];
-                newarg[3] = args[2];
-                deleDyncall dyncall = (deleDyncall)target.ToDelegate();
-                return dyncall(method, newarg);
-            }
-            if (method == "owner_SetResolver")
-            {
-                object[] newarg = new object[4];
-                newarg[0] = callscript;
-                newarg[1] = args[0];
-                newarg[2] = args[1];
-                newarg[3] = args[2];
-                deleDyncall dyncall = (deleDyncall)target.ToDelegate();
-                return dyncall(method, newarg);
-            }
-            #endregion
-            #region 注册器接口 仅智能合约
-            if (method == "register_SetSubdomainOwner")
-            {
-                object[] newarg = new object[5];
-                newarg[0] = callscript;
-                newarg[1] = args[0];
-                newarg[2] = args[1];
-                newarg[3] = args[2];
-                newarg[4] = args[3];
-                deleDyncall dyncall = (deleDyncall)target.ToDelegate();
-                return dyncall(method, newarg);
-            }
-            #endregion
-
-            #region 升级合约,耗费990(有动态调用),仅限管理员
-            if (method == "upgrade")
-            {
-                //不是管理员 不能操作
-                if (!Runtime.CheckWitness(superAdmin))
-                    return false;
-
-                if (args.Length != 1 && args.Length != 9)
-                    return false;
-
-                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
-                byte[] new_script = (byte[])args[0];
-                //如果传入的脚本一样 不继续操作
-                if (script == new_script)
-                    return false;
-
-                byte[] parameter_list = new byte[] { 0x07, 0x10 };
-                byte return_type = 0x05;
-                bool need_storage = (bool)(object)03;
-                string name = "domaincenter_jump";
-                string version = "1";
-                string author = "xx";
-                string email = "xx";
-                string description = "域名跳板合约";
-
-                if (args.Length == 9)
-                {
-                    parameter_list = (byte[])args[1];
-                    return_type = (byte)args[2];
-                    need_storage = (bool)args[3];
-                    name = (string)args[4];
-                    version = (string)args[5];
-                    author = (string)args[6];
-                    email = (string)args[7];
-                    description = (string)args[8];
-                }
-                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
                 return true;
             }
-            #endregion
-            deleDyncall _dyncall = (deleDyncall)target.ToDelegate();
-            return _dyncall(method, args);
+            else if (Runtime.Trigger == TriggerType.Application)
+            {
+                string magicstr = "for nns test 002";
+                if (method == "_setTarget")
+                {
+                    if (Runtime.CheckWitness(superAdmin))
+                    {
+                        Storage.Put(Storage.CurrentContext, "target", (byte[])args[0]);
+                        return new byte[] { 0x01 };
+                    }
+                    return new byte[] { 0x00 };
+                }
+
+                var callscript = ExecutionEngine.CallingScriptHash;
+                byte[] target = Storage.Get(Storage.CurrentContext, "target");
+
+                #region 所有者接口 直接调用&智能合约
+                if (method == "owner_SetOwner")
+                {
+                    object[] newarg = new object[4];
+                    newarg[0] = callscript;
+                    newarg[1] = args[0];
+                    newarg[2] = args[1];
+                    newarg[3] = args[2];
+                    deleDyncall dyncall = (deleDyncall)target.ToDelegate();
+                    return dyncall(method, newarg);
+                }
+                if (method == "owner_SetRegister")
+                {
+                    object[] newarg = new object[4];
+                    newarg[0] = callscript;
+                    newarg[1] = args[0];
+                    newarg[2] = args[1];
+                    newarg[3] = args[2];
+                    deleDyncall dyncall = (deleDyncall)target.ToDelegate();
+                    return dyncall(method, newarg);
+                }
+                if (method == "owner_SetResolver")
+                {
+                    object[] newarg = new object[4];
+                    newarg[0] = callscript;
+                    newarg[1] = args[0];
+                    newarg[2] = args[1];
+                    newarg[3] = args[2];
+                    deleDyncall dyncall = (deleDyncall)target.ToDelegate();
+                    return dyncall(method, newarg);
+                }
+                #endregion
+                #region 注册器接口 仅智能合约
+                if (method == "register_SetSubdomainOwner")
+                {
+                    object[] newarg = new object[5];
+                    newarg[0] = callscript;
+                    newarg[1] = args[0];
+                    newarg[2] = args[1];
+                    newarg[3] = args[2];
+                    newarg[4] = args[3];
+                    deleDyncall dyncall = (deleDyncall)target.ToDelegate();
+                    return dyncall(method, newarg);
+                }
+                #endregion
+
+                #region 升级合约,耗费990(有动态调用),仅限管理员
+                if (method == "upgrade")
+                {
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage = (bool)(object)03;
+                    string name = "domaincenter_jump";
+                    string version = "1";
+                    string author = "NEL";
+                    string email = "0";
+                    string description = "域名跳板合约";
+
+                    if (args.Length == 9)
+                    {
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
+                    }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
+                }
+                #endregion
+                deleDyncall _dyncall = (deleDyncall)target.ToDelegate();
+                return _dyncall(method, args);
+            }
+            return new byte[] { 0 };
         }
     }
 

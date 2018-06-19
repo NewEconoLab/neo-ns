@@ -48,19 +48,19 @@ namespace DApp
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
         //域名中心跳板合约地址
-        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
+        [Appcall("31f0f24160c2158704ecb09ecfd0ab7d2f25d035")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
         // sgas转账
-        [Appcall("c7816d11287c08135f4e5f907af9e39754910ba3")]
+        [Appcall("a4d35ea30dc61878518c5070352e7c33006b1f28")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[]  nnc = Helper.ToScriptHash("ALwoAqwKEegWgLsSJq7XLERL8dvsB45LQV");
 
         // nnc 合约地址
         // 竞拍手续费扣除
-        [Appcall("d8fa0cfdd54493dfc9e908b26ba165605363137b")]
+        [Appcall("9c24a26b2dc5b286bdc9069fa894b653d0751e78")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -294,8 +294,20 @@ namespace DApp
 
         }
 
-        public static bool wantBuy(byte[] hash, string domainname)
+        public static bool wantBuy(byte[] who,byte[] hash, string domainname)
         {
+            //判断域名的合法性
+            //域名的有效性  只能是a~z 0~9 2~32长
+            if (domainname.Length < 2 || domainname.Length > 32)
+                return false;
+            foreach (var c in domainname)
+            {
+                if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')))
+                {
+                    return false;
+                }
+            }
+
             var domaininfo = getOwnerInfo(hash);
             //先看这个域名归我管不
             if (domaininfo.register.AsBigInteger() != ExecutionEngine.ExecutingScriptHash.AsBigInteger())
@@ -341,6 +353,7 @@ namespace DApp
 
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
+            onAddPrice(who, selling, 0);
             saveSellingState(sell);
             return true;
         }
@@ -671,6 +684,14 @@ namespace DApp
         #endregion
         public static object Main(string method, object[] args)
         {
+            if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
+            {
+                return Runtime.CheckWitness(superAdmin);
+            }
+            else if (Runtime.Trigger == TriggerType.VerificationR)
+            {
+                return true;
+            }
             ////请求者调用
             ////不能這樣暴力開了
             ////if (method == "requestSubDomain")
@@ -687,149 +708,152 @@ namespace DApp
             //    byte[] nnshash = (byte[])args[0];
             //    string domain = (string)args[1];
             //}
-            if (method == "getDomainUseState")//查看域名狀態
+            else if (Runtime.Trigger == TriggerType.Application)
             {
-                return getDomainUseState((byte[])args[0]);
-            }
-            if (method == "getSellingStateByFullhash")//查看域名狀態
-            {
-                return getSellingStateByFullhash((byte[])args[0]);
-            }
-            if (method == "getSellingStateByTXID")//查看域名狀態
-            {
-                return getSellingStateByTXID((byte[])args[0]);
-            }
-            if (method == "wantBuy")//申請開標 (00,02,20)=>(10)
-            {
-                byte[] who = (byte[])args[0];
-                if (Runtime.CheckWitness(who) == false)
-                    return false;
-                byte[] nnshash = (byte[])args[1];
-                string domain = (string)args[2];
-                return wantBuy(nnshash, domain);
-            }
-            if (method == "addPrice")//出價&加價 (10,11,12)=>不改變狀態
-            {
-                byte[] who = (byte[])args[0];
-                if (Runtime.CheckWitness(who) == false)
-                    return false;
-
-                byte[] txid = (byte[])args[1];
-                BigInteger myprice = (BigInteger)args[2];
-                //如果有就充值到我的戶頭
-                //如果戶頭的錢夠扣,就參與投標
-                return addPrice(who, txid, myprice);
-            }
-            if (method == "balanceOfSelling")// 看我投标的数额
-            {
-                byte[] who = (byte[])args[0];
-                byte[] txid = (byte[])args[1];//拍賣id
-                return balanceOfSelling(who, txid);
-            }
-            if (method == "endSelling")// 限制狀態20
-            {
-                byte[] who = (byte[])args[0];
-                if (Runtime.CheckWitness(who) == false)
-                    return false;
-
-                byte[] txid = (byte[])args[1];//拍賣id
-                //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
-                //如果中標,拍賣金全扣,給我域名所有權
-                return endSelling(who, txid);
-            }
-            if (method == "getSellingDomain")//拿走我拍到的域名
-            {
-                byte[] who = (byte[])args[0];
-                if (Runtime.CheckWitness(who) == false)
-                    return false;
-                byte[] txid = (byte[])args[1];//拍賣id
-
-                return getSellingDomain(who, txid);
-            }
-            if (method == "renewDomain")//续约域名
-            {
-                byte[] who = (byte[])args[0];
-                if (Runtime.CheckWitness(who) == false)
-                    return false;
-                byte[] nnshash = (byte[])args[1];
-                string domain = (string)args[2];
-                return renewDomain(who, nnshash, domain);
-            }
-            #region 资金管理
-            if (method == "balanceOf")
-            {
-                byte[] who = (byte[])args[0];
-                return balanceOf(who);
-            }
-            if (method == "getmoneyback")// 把多餘的錢取回
-            {
-                byte[] who = (byte[])args[0];
-                BigInteger myprice = (BigInteger)args[1];
-                return getMoneyBack(who, myprice);
-            }
-            if (method == "setmoneyin")//如果用普通方式轉了nep5進來,也不要緊
-            {
-                byte[] txid = (byte[])args[0];// 提供一個txid,查這筆txid 的nep5入賬證明
-                return setMoneyIn(txid);
-            }
-            if (method == "test_pool")
-            {
-                BigInteger b = 10;
-                // 把扣的钱丢进coinpool
-                object[] _param = new object[3];
-                _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-                _param[1] = nnc; //to
-                _param[2] = b.ToByteArray();//value
-
-                object[] id = new object[1];
-                id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-
-                sgasCall("transfer_app", _param);
-                nncCall("useGas", id);
-            }
-            #endregion
-
-
-            #region 升级合约,耗费490,仅限管理员
-            if (method == "upgrade")
-            {
-                //不是管理员 不能操作
-                if (!Runtime.CheckWitness(superAdmin))
-                    return false;
-
-                if (args.Length != 1 && args.Length != 9)
-                    return false;
-
-                byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
-                byte[] new_script = (byte[])args[0];
-                //如果传入的脚本一样 不继续操作
-                if (script == new_script)
-                    return false;
-
-                byte[] parameter_list = new byte[] { 0x07, 0x10 };
-                byte return_type = 0x05;
-                bool need_storage = (bool)(object)01;
-                string name = "register_sell";
-                string version = "1";
-                string author = "xx";
-                string email = "xx";
-                string description = "拍卖注册器";
-
-                if (args.Length == 9)
+                if (method == "getDomainUseState")//查看域名狀態
                 {
-                    parameter_list = (byte[])args[1];
-                    return_type = (byte)args[2];
-                    need_storage = (bool)args[3];
-                    name = (string)args[4];
-                    version = (string)args[5];
-                    author = (string)args[6];
-                    email = (string)args[7];
-                    description = (string)args[8];
+                    return getDomainUseState((byte[])args[0]);
                 }
-                Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
-                return true;
+                if (method == "getSellingStateByFullhash")//查看域名狀態
+                {
+                    return getSellingStateByFullhash((byte[])args[0]);
+                }
+                if (method == "getSellingStateByTXID")//查看域名狀態
+                {
+                    return getSellingStateByTXID((byte[])args[0]);
+                }
+                if (method == "wantBuy")//申請開標 (00,02,20)=>(10)
+                {
+                    byte[] who = (byte[])args[0];
+                    if (Runtime.CheckWitness(who) == false)
+                        return false;
+                    byte[] nnshash = (byte[])args[1];
+                    string domain = (string)args[2];
+                    return wantBuy(who, nnshash, domain);
+                }
+                if (method == "addPrice")//出價&加價 (10,11,12)=>不改變狀態
+                {
+                    byte[] who = (byte[])args[0];
+                    if (Runtime.CheckWitness(who) == false)
+                        return false;
+
+                    byte[] txid = (byte[])args[1];
+                    BigInteger myprice = (BigInteger)args[2];
+                    //如果有就充值到我的戶頭
+                    //如果戶頭的錢夠扣,就參與投標
+                    return addPrice(who, txid, myprice);
+                }
+                if (method == "balanceOfSelling")// 看我投标的数额
+                {
+                    byte[] who = (byte[])args[0];
+                    byte[] txid = (byte[])args[1];//拍賣id
+                    return balanceOfSelling(who, txid);
+                }
+                if (method == "endSelling")// 限制狀態20
+                {
+                    byte[] who = (byte[])args[0];
+                    if (Runtime.CheckWitness(who) == false)
+                        return false;
+
+                    byte[] txid = (byte[])args[1];//拍賣id
+                                                  //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
+                                                  //如果中標,拍賣金全扣,給我域名所有權
+                    return endSelling(who, txid);
+                }
+                if (method == "getSellingDomain")//拿走我拍到的域名
+                {
+                    byte[] who = (byte[])args[0];
+                    if (Runtime.CheckWitness(who) == false)
+                        return false;
+                    byte[] txid = (byte[])args[1];//拍賣id
+
+                    return getSellingDomain(who, txid);
+                }
+                if (method == "renewDomain")//续约域名
+                {
+                    byte[] who = (byte[])args[0];
+                    if (Runtime.CheckWitness(who) == false)
+                        return false;
+                    byte[] nnshash = (byte[])args[1];
+                    string domain = (string)args[2];
+                    return renewDomain(who, nnshash, domain);
+                }
+
+                #region 资金管理
+                if (method == "balanceOf")
+                {
+                    byte[] who = (byte[])args[0];
+                    return balanceOf(who);
+                }
+                if (method == "getmoneyback")// 把多餘的錢取回
+                {
+                    byte[] who = (byte[])args[0];
+                    BigInteger myprice = (BigInteger)args[1];
+                    return getMoneyBack(who, myprice);
+                }
+                if (method == "setmoneyin")//如果用普通方式轉了nep5進來,也不要緊
+                {
+                    byte[] txid = (byte[])args[0];// 提供一個txid,查這筆txid 的nep5入賬證明
+                    return setMoneyIn(txid);
+                }
+                if (method == "test_pool")
+                {
+                    BigInteger b = 10;
+                    // 把扣的钱丢进coinpool
+                    object[] _param = new object[3];
+                    _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
+                    _param[1] = nnc; //to
+                    _param[2] = b.ToByteArray();//value
+
+                    object[] id = new object[1];
+                    id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+
+                    sgasCall("transfer_app", _param);
+                    nncCall("useGas", id);
+                }
+                #endregion
+
+                #region 升级合约,耗费490,仅限管理员
+                if (method == "upgrade")
+                {
+                    //不是管理员 不能操作
+                    if (!Runtime.CheckWitness(superAdmin))
+                        return false;
+
+                    if (args.Length != 1 && args.Length != 9)
+                        return false;
+
+                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
+                    byte[] new_script = (byte[])args[0];
+                    //如果传入的脚本一样 不继续操作
+                    if (script == new_script)
+                        return false;
+
+                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
+                    byte return_type = 0x05;
+                    bool need_storage = (bool)(object)01;
+                    string name = "register_sell";
+                    string version = "1";
+                    string author = "NEL";
+                    string email = "0";
+                    string description = "拍卖注册器";
+
+                    if (args.Length == 9)
+                    {
+                        parameter_list = (byte[])args[1];
+                        return_type = (byte)args[2];
+                        need_storage = (bool)args[3];
+                        name = (string)args[4];
+                        version = (string)args[5];
+                        author = (string)args[6];
+                        email = (string)args[7];
+                        description = (string)args[8];
+                    }
+                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
+                    return true;
+                }
+                #endregion
             }
-            #endregion
             return new byte[] { 0 };
         }
     }
