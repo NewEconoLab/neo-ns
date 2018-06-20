@@ -291,7 +291,6 @@ namespace DApp
 
             onSellingState(state);
             Storage.Put(Storage.CurrentContext, key, value);
-
         }
 
         public static bool wantBuy(byte[] who,byte[] hash, string domainname)
@@ -353,8 +352,8 @@ namespace DApp
 
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
-            onAddPrice(who, selling, 0);
             saveSellingState(sell);
+            onAddPrice(who, sell, 0);
             return true;
         }
         public static BigInteger balanceOfSelling(byte[] who, byte[] txid)
