@@ -354,6 +354,8 @@ namespace Nep5_Contract
                     //如果有跳板调用，不让转
                     if (ExecutionEngine.EntryScriptHash.AsBigInteger() != callscript.AsBigInteger())
                         return false;
+                    //如果to是不可收钱合约,不让转
+                    if (!IsPayable(to)) return false;
 
                     return transfer(from, to, value);
                 }
@@ -367,6 +369,8 @@ namespace Nep5_Contract
                     //如果from 不是 传入脚本 不让转
                     if (from.AsBigInteger() != callscript.AsBigInteger())
                         return false;
+                    //如果to是不可收钱合约,不让转
+                    if (!IsPayable(to)) return false;
 
                     return transfer(from, to, value);
                 }
@@ -440,5 +444,12 @@ namespace Nep5_Contract
             return false;
         }
 
+        public static bool IsPayable(byte[] to)
+        {
+            var c = Blockchain.GetContract(to);
+            if (c == null)
+                return true;
+            return c.IsPayable;
+        }
     }
 }

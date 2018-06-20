@@ -689,7 +689,7 @@ namespace DApp
             }
             else if (Runtime.Trigger == TriggerType.VerificationR)
             {
-                return false;
+                return true;
             }
             ////请求者调用
             ////不能這樣暴力開了

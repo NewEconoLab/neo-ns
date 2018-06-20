@@ -33,9 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Neo.SmartContract.Framework, Version=2.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Neo.SmartContract.Framework, Version=2.7.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>.\Neo.SmartContract.Framework.dll</HintPath>
+      <HintPath>..\..\neo-devpack-dotnet\Neo.SmartContract.Framework\bin\Debug\net40\Neo.SmartContract.Framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -51,7 +51,6 @@
     <Compile Include="sgas.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="build.tasks" />
   </ItemGroup>
   <ItemGroup>
