@@ -83,13 +83,11 @@ namespace DApp
         {
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                if (Runtime.CheckWitness(superAdmin))
-                    return new byte[] { 0x01 };
                 return new byte[] { 0x00 };
             }
             else if (Runtime.Trigger == TriggerType.VerificationR)
             {
-                return new byte[] { 0x01 };
+                return new byte[] { 0x00 };
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {

@@ -686,11 +686,11 @@ namespace DApp
         {
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
-                return Runtime.CheckWitness(superAdmin);
+                return false;
             }
             else if (Runtime.Trigger == TriggerType.VerificationR)
             {
-                return true;
+                return false;
             }
             ////请求者调用
             ////不能這樣暴力開了
