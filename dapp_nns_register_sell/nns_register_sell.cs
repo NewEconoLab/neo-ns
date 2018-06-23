@@ -48,19 +48,19 @@ namespace DApp
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
         //域名中心跳板合约地址
-        [Appcall("31f0f24160c2158704ecb09ecfd0ab7d2f25d035")]
+        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
         // sgas转账
-        [Appcall("a4d35ea30dc61878518c5070352e7c33006b1f28")]
+        [Appcall("5956f9bba5189e1b0c063ed33893131efe694761")]
         static extern object sgasCall(string method, object[] arr);
 
-        static readonly byte[]  nnc = Helper.ToScriptHash("ALwoAqwKEegWgLsSJq7XLERL8dvsB45LQV");
+        static readonly byte[]  nnc = Helper.ToScriptHash("AY1HAfMSt2m1oyec7UyHaRNeLu3GS52ftQ");
 
         // nnc 合约地址
         // 竞拍手续费扣除
-        [Appcall("9c24a26b2dc5b286bdc9069fa894b653d0751e78")]
+        [Appcall("b450eb9bafd449f81e989fdc4f58160bb90d0bb2")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法

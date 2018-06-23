@@ -46,7 +46,7 @@ namespace dapp_nnc
 
         // sgas合约地址
         // sgas转账
-        [Appcall("a4d35ea30dc61878518c5070352e7c33006b1f28")]
+        [Appcall("5956f9bba5189e1b0c063ed33893131efe694761")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[] quadZero = new byte[] { 0, 0, 0, 0 };
@@ -376,8 +376,6 @@ namespace dapp_nnc
                     //如果from 不是 传入脚本 不让转
                     if (from.AsBigInteger() != callscript.AsBigInteger())
                         return false;
-                    //如果to是不可收钱合约,不让转
-                    if (!IsPayable(to)) return false;
 
                     return transfer(from, to, value);
                 }
@@ -423,7 +421,7 @@ namespace dapp_nnc
 
                     byte[] parameter_list = new byte[] { 0x07, 0x10 };
                     byte return_type = 0x05;
-                    bool need_storage = (bool)(object)01;
+                    bool need_storage = (bool)(object)05;
                     string name = "nnc";
                     string version = "1";
                     string author = "NEL";
@@ -453,9 +451,9 @@ namespace dapp_nnc
         public static bool IsPayable(byte[] to)
         {
             var c = Blockchain.GetContract(to);
-            if (c == null)
-                return true;
-            return c.IsPayable;
+            if (c.Script.Length > 0)
+                return c.IsPayable;
+            return true;
         }
     }
 }

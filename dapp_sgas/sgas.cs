@@ -418,7 +418,7 @@ namespace Nep5_Contract
 
                     byte[] parameter_list = new byte[] { 0x07, 0x10 };
                     byte return_type = 0x05;
-                    bool need_storage = (bool)(object)01;
+                    bool need_storage = (bool)(object)05;
                     string name = "sgas";
                     string version = "1";
                     string author = "NEL";
@@ -447,9 +447,9 @@ namespace Nep5_Contract
         public static bool IsPayable(byte[] to)
         {
             var c = Blockchain.GetContract(to);
-            if (c == null)
-                return true;
-            return c.IsPayable;
+            if (c.Script.Length > 0)
+                return c.IsPayable;
+            return true;
         }
     }
 }

@@ -35,9 +35,9 @@ namespace DApp
         //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.ToScriptHash("ALgQorKtWwaKAkbpQGbP9jFdvHq5iEXAJh");//注意 script_hash 是反序的
-                                                                                                        //跳板合约0x31f0f24160c2158704ecb09ecfd0ab7d2f25d035
-                                                                                                        //地址ALgQorKtWwaKAkbpQGbP9jFdvHq5iEXAJh
+        static readonly byte[] jumpContract = Helper.ToScriptHash("AYcWLcuPaZsWZkM7avxN5eHfap3hGhTqye");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x77e193f1af44a61ed3613e6e3442a0fc809bb4b8
+                                                                                                        //地址AYcWLcuPaZsWZkM7avxN5eHfap3hGhTqye
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
