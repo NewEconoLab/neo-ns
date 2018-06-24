@@ -121,54 +121,53 @@ namespace Nep5_Contract
                 return null;
 
             //老式实现方法
-            TransferInfo info = new TransferInfo();
-            int seek = 0;
-            var fromlen = (int)v.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            info.from = v.Range(seek, fromlen);
-            seek += fromlen;
-            var tolen = (int)v.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            info.to = v.Range(seek, tolen);
-            seek += tolen;
-            var valuelen = (int)v.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            info.value = v.Range(seek, valuelen).AsBigInteger();
-            return info;
+            //TransferInfo info = new TransferInfo();
+            //int seek = 0;
+            //var fromlen = (int)v.Range(seek, 2).AsBigInteger();
+            //seek += 2;
+            //info.from = v.Range(seek, fromlen);
+            //seek += fromlen;
+            //var tolen = (int)v.Range(seek, 2).AsBigInteger();
+            //seek += 2;
+            //info.to = v.Range(seek, tolen);
+            //seek += tolen;
+            //var valuelen = (int)v.Range(seek, 2).AsBigInteger();
+            //seek += 2;
+            //info.value = v.Range(seek, valuelen).AsBigInteger();
+            //return info;
 
             //新式实现方法只要一行
-            // return Helper.Deserialize(v) as TransferInfo;
+             return Helper.Deserialize(v) as TransferInfo;
         }
+
         //把doublezero定义出来就好了，...... 要查编译器了
         static readonly byte[] doublezero = new byte[2] { 0x00, 0x00 };
         private static void setTxInfo(byte[] from, byte[] to, BigInteger value)
         {
-            //因为testnet 还在2.6，限制
-
             TransferInfo info = new TransferInfo();
             info.from = from;
             info.to = to;
             info.value = value;
 
-            //用一个老式实现法
-
-            //优化的拼包方法
-
-            var data = info.from;
-            var lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            //lendata是数据长度得bytearray，因为bigint长度不固定，统一加两个零，然后只取前面两个字节
-            //为什么要两个字节，因为bigint是含有符号位得，统一加个零安全，要不然长度129取一个字节就是负数了
-            var txinfo = lendata.Concat(data);
-
-            data = info.to;
-            lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            txinfo = txinfo.Concat(lendata).Concat(data);
-
-            data = value.AsByteArray();
-            lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            txinfo = txinfo.Concat(lendata).Concat(data);
+            ////用一个老式实现法
+            //
+            ////优化的拼包方法
+            //
+            //var data = info.from;
+            //var lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            ////lendata是数据长度得bytearray，因为bigint长度不固定，统一加两个零，然后只取前面两个字节
+            ////为什么要两个字节，因为bigint是含有符号位得，统一加个零安全，要不然长度129取一个字节就是负数了
+            //var txinfo = lendata.Concat(data);
+            //
+            //data = info.to;
+            //lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            //txinfo = txinfo.Concat(lendata).Concat(data);
+            //
+            //data = value.AsByteArray();
+            //lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            //txinfo = txinfo.Concat(lendata).Concat(data);
             //新式实现方法只要一行
-            //byte[] txinfo = Helper.Serialize(info);
+            byte[] txinfo = Helper.Serialize(info);
 
             var txid =(ExecutionEngine.ScriptContainer as Transaction).Hash;
             var keytxid = new byte[] { 0x12}.Concat(txid);
@@ -320,7 +319,7 @@ namespace Nep5_Contract
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magic = "20180619";
+                string magic = "20180625";
 
                 //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
                 var callscript = ExecutionEngine.CallingScriptHash;
@@ -447,9 +446,9 @@ namespace Nep5_Contract
         public static bool IsPayable(byte[] to)
         {
             var c = Blockchain.GetContract(to);
-            if (c.Script.Length > 0)
-                return c.IsPayable;
-            return true;
+            if (c.Equals(null))
+                return true;
+            return c.IsPayable;
         }
     }
 }

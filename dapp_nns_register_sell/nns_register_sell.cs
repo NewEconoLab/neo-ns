@@ -53,14 +53,14 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("5956f9bba5189e1b0c063ed33893131efe694761")]
+        [Appcall("3f7420285874867c30f32e44f304fd62ad1e9573")]
         static extern object sgasCall(string method, object[] arr);
 
-        static readonly byte[]  nnc = Helper.ToScriptHash("AY1HAfMSt2m1oyec7UyHaRNeLu3GS52ftQ");
+        static readonly byte[]  nnc = Helper.ToScriptHash("ASirNKwjXg1bErEaZCAo2dxASErMaqKmoo");
 
         // nnc 合约地址
         // 竞拍手续费扣除
-        [Appcall("b450eb9bafd449f81e989fdc4f58160bb90d0bb2")]
+        [Appcall("7c488f873d2fa3c2ccc4c8af8dbec83678111778")]
         static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -175,6 +175,11 @@ namespace DApp
         public static SellingState getSellingStateByTXID(byte[] txid)
         {
             var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(txid));
+            if (data.Length > 0)
+                return Helper.Deserialize(data) as SellingState;
+            SellingState state = new SellingState();
+            return state;
+            /*
             SellingState state = new SellingState();
             state.id = txid;
             int seek = 0;
@@ -226,6 +231,7 @@ namespace DApp
             seek += len;
 
             return state;
+            */
         }
         public static SellingState getSellingStateByFullhash(byte[] fullhash)
         {
@@ -251,6 +257,10 @@ namespace DApp
 
             var key = new byte[] { 0x02 }.Concat(state.id);
 
+            onSellingState(state);
+            Storage.Put(Storage.CurrentContext, key, Helper.Serialize(state));
+
+            /*
             var doublezero = new byte[] { 0, 0 };
 
             var data = state.parenthash;
@@ -291,6 +301,7 @@ namespace DApp
 
             onSellingState(state);
             Storage.Put(Storage.CurrentContext, key, value);
+            */
         }
 
         public static bool wantBuy(byte[] who,byte[] hash, string domainname)

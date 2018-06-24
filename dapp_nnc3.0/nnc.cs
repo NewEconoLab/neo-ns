@@ -46,7 +46,7 @@ namespace dapp_nnc
 
         // sgas合约地址
         // sgas转账
-        [Appcall("5956f9bba5189e1b0c063ed33893131efe694761")]
+        [Appcall("3f7420285874867c30f32e44f304fd62ad1e9573")]
         static extern object sgasCall(string method, object[] arr);
 
         static readonly byte[] quadZero = new byte[] { 0, 0, 0, 0 };
@@ -301,7 +301,7 @@ namespace dapp_nnc
 
         public static object Main(string method , object[] args)
         {
-            var magicstr = "2018-06-19";
+            var magicstr = "2018-06-25";
 
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
@@ -451,7 +451,7 @@ namespace dapp_nnc
         public static bool IsPayable(byte[] to)
         {
             var c = Blockchain.GetContract(to);
-            if (c.Script.Length > 0)
+            if (c.Equals(null))
                 return c.IsPayable;
             return true;
         }
