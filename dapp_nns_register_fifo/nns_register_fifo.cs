@@ -18,7 +18,7 @@ namespace DApp
         const int secondperday = 24 * 3600;//一天
         const int domaindays = 7;//租一次给几天
 
-        [Appcall("31f0f24160c2158704ecb09ecfd0ab7d2f25d035")]
+        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
         static extern object rootCall(string method, object[] arr);
 
         //static readonly byte[] rootDomainHash = Helper.HexToBytes("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");

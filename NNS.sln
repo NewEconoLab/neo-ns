@@ -12,9 +12,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domaincenter", "dapp_nns_domaincenter\dapp_nns_domaincenter.csproj", "{22DEEC98-DEE0-435C-B919-AB69B607026F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "old", "old", "{920C393E-2468-4E56-B333-85451BBBFB9E}"
-	ProjectSection(SolutionItems) = preProject
-		dapp_nnc3.0\nnc - 复制.cs = dapp_nnc3.0\nnc - 复制.cs
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_register_fifo", "dapp_nns_register_fifo\dapp_nns_register_fifo.csproj", "{C87845C5-2589-4576-99C7-372D2BE51BBB}"
 EndProject
@@ -44,11 +41,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_sgas", "dapp_sgas\dapp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_coinpool", "dapp_nns_coinpool\dapp_coinpool.csproj", "{FF20215D-332A-498C-9B96-630376AA76BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_sgas_migrate", "dapp_sgas_migrate\dapp_sgas_migrate.csproj", "{4431BE35-2831-438F-AEF3-4C3AAE71C89C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nnc", "nnc", "{50CBC326-02AE-4561-9892-A14398A8C582}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nnc3.0", "dapp_nnc3.0\dapp_nnc3.0.csproj", "{4C296095-28DE-4659-96DD-676A2BD87410}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nnc4.0", "dapp_nnc4.0\dapp_nnc4.0.csproj", "{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -100,14 +97,14 @@ Global
 		{FF20215D-332A-498C-9B96-630376AA76BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF20215D-332A-498C-9B96-630376AA76BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF20215D-332A-498C-9B96-630376AA76BA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4431BE35-2831-438F-AEF3-4C3AAE71C89C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4431BE35-2831-438F-AEF3-4C3AAE71C89C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4431BE35-2831-438F-AEF3-4C3AAE71C89C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4431BE35-2831-438F-AEF3-4C3AAE71C89C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4C296095-28DE-4659-96DD-676A2BD87410}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4C296095-28DE-4659-96DD-676A2BD87410}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C296095-28DE-4659-96DD-676A2BD87410}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C296095-28DE-4659-96DD-676A2BD87410}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -125,8 +122,8 @@ Global
 		{94380D4A-B521-4D7B-A758-2B30430E4A56} = {2D75EEDA-1D67-40E0-AF53-CFAB996EE392}
 		{9AB1F4DB-B744-4807-8051-72735359C749} = {50CBC326-02AE-4561-9892-A14398A8C582}
 		{FF20215D-332A-498C-9B96-630376AA76BA} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
-		{4431BE35-2831-438F-AEF3-4C3AAE71C89C} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
-		{4C296095-28DE-4659-96DD-676A2BD87410} = {50CBC326-02AE-4561-9892-A14398A8C582}
+		{4C296095-28DE-4659-96DD-676A2BD87410} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
+		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0} = {50CBC326-02AE-4561-9892-A14398A8C582}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA753102-3A6A-40F2-B3CC-440DE8A9A356}
