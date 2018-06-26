@@ -25,7 +25,7 @@ namespace dapp_nnc
             public BigInteger value;
         }
 
-        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//管理员
+        static readonly byte[] superAdmin = Helper.ToScriptHash("AMNFdmGuBrU1iaMbYd63L1zucYMdU9hvQU");//管理员
 
         public static string name()
         {
@@ -142,6 +142,8 @@ namespace dapp_nnc
                 {
                     if (args.Length != 1) return 0;
                     byte[] who = (byte[])args[0];
+                    if (who.Length != 20)
+                        return false;
                     return balanceOf(who);
                 }
                 if (method == "transfer")
@@ -151,7 +153,7 @@ namespace dapp_nnc
                     byte[] to = (byte[])args[1];
                     if (from == to)
                         return true;
-                    if (from.Length == 0 || to.Length == 0)
+                    if (from.Length != 20 || to.Length != 20)
                         return false;
                     BigInteger value = (BigInteger)args[2];
                     //没有from签名，不让转

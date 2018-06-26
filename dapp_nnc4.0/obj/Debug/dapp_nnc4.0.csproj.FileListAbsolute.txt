@@ -1,8 +1,0 @@
-D:\work\neo-ns\dapp_nnc4.0\bin\Debug\dapp_nnc4.0.dll
-D:\work\neo-ns\dapp_nnc4.0\bin\Debug\dapp_nnc4.0.pdb
-D:\work\neo-ns\dapp_nnc4.0\bin\Debug\Neo.SmartContract.Framework.dll
-D:\work\neo-ns\dapp_nnc4.0\bin\Debug\Neo.SmartContract.Framework.pdb
-D:\work\neo-ns\dapp_nnc4.0\obj\Debug\dapp_nnc4.0.csproj.CoreCompileInputs.cache
-D:\work\neo-ns\dapp_nnc4.0\obj\Debug\dapp_nnc4.0.csproj.CopyComplete
-D:\work\neo-ns\dapp_nnc4.0\obj\Debug\dapp_nnc4.0.dll
-D:\work\neo-ns\dapp_nnc4.0\obj\Debug\dapp_nnc4.0.pdb
