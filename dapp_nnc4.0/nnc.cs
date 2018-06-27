@@ -55,10 +55,6 @@ namespace dapp_nnc
 
         public static bool transfer(byte[] from, byte[] to, BigInteger value)
         {
-            if (value <= 0) return false;
-
-            if (from == to) return true;
-
             //付款方
             if (from.Length > 0)
             {
@@ -106,7 +102,7 @@ namespace dapp_nnc
 
         public static object Main(string method, object[] args)
         {
-            var magicstr = "20180625";
+            var magicstr = "20180627";
 
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
             {
@@ -156,6 +152,7 @@ namespace dapp_nnc
                     if (from.Length != 20 || to.Length != 20)
                         return false;
                     BigInteger value = (BigInteger)args[2];
+                    if (value <= 0) return false;
                     //没有from签名，不让转
                     if (!Runtime.CheckWitness(from))
                         return false;
