@@ -38,6 +38,20 @@ NNS体系智能合约目前共六个
 
 需要动态调用特性NEP4 +500gas
 
+有一个通知，通知名字是changeOwnerInfo,参数是(byte[] namehash, OwnerInfo addr, bool newdomain)
+        public class OwnerInfo
+        {
+            public byte[] owner;//如果长度=0 表示没有初始化
+            public byte[] register;
+            public byte[] resolver;
+            public BigInteger TTL;
+            public byte[] parentOwner;//当此域名注册时，他爹的所有者，记录这个，则可以检测域名的爹变了
+            //nameinfo 整合到一起
+            public string domain;//如果长度=0 表示没有初始化
+            public byte[] parenthash;
+            public BigInteger root;//是不是根合约
+        }
+
 域名中心跳板
 ------------
 
@@ -55,6 +69,8 @@ NNS体系智能合约目前共六个
 标准解析器自己存储自身管理的解析配置，需要存储+400gas
 
 标准解析器*通过静态调用appcall 调用域名中心查询域名状态*
+
+有一个通知，通知名字是setResolveData,参数是(byte[] namehash, string protocol, byte[] data)
 
 先到先得注册器
 --------------
@@ -78,6 +94,32 @@ NNS体系智能合约目前共六个
 
 拍卖注册器通过静态调用appcall 调用资金池合约处理租金和拍卖费用
 
+有一个通知，一个通知名字是domainstate,参数是(SellingState sellingState)
+          第二个通知名字是addprice，参数是(byte[] who, SellingState sellingState, BigInteger value)
+        public class SellingState
+        {
+            public byte[] id; //拍卖id,就是拍卖生成的txid
+
+            public byte[] parenthash;//拍卖内容
+            public string domain;//拍卖内容
+            public BigInteger domainTTL;//域名的TTL,用这个信息来判断域名是否发生了变化
+
+            public BigInteger startBlockSelling;//开始销售块
+            //public int StartTime 算出
+            //step2time //算出
+            //rantime //算出
+            //endtime //算出
+            //最终领取时间 算出,如果超出最终领取时间没有领域名,就不让领了
+            //public BigInteger startBlockRan;//当第一个在rantime~endtime之后出价的人,记录他出价的块
+            //这个变量移除,改为运算更少的随机块决定方式
+            //从这个块开始,往后的每一个块出价都有一定几率直接结束
+            public BigInteger endBlock;//结束块
+
+            public BigInteger maxPrice;//最高出价
+            public byte[] maxBuyer;//最大出价者
+            public BigInteger lastBlock;//最后出价块
+        }          
+
 SGAS合约
 --------
 
@@ -87,10 +129,15 @@ SGAS并非NNS专用，是NNS选用了SGAS来做燃料币。因为SGAS的价值�
 
 智能合约直接使用GAS不方便，但是使用SGAS就方便了很多
 
+有一个通知，一个通知名字是transfer,参数是(byte[] from, byte[] to, BigInteger value)
+          第二个通知名字是onRefundTarget，参数是(byte[] txid, byte[] who)
+
 资金池合约
 ----------
 
 资金池合约是一个管理租金和拍卖所得的SGAS的合约，资金池合约实现一个类似POS的机制，根据NNC的持有量（NNC为一个UTXO资产），分享资金池中的SGAS
+
+有一个通知，一个通知名字是transfer,参数是(byte[] from, byte[] to, BigInteger value)
 
 合约部署
 ========
