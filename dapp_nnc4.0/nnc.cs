@@ -25,7 +25,7 @@ namespace dapp_nnc
             public BigInteger value;
         }
 
-        static readonly byte[] superAdmin = Helper.ToScriptHash("AMJBRyBQ66vvCwUSfk85Cmtmyf8vi1tuTt");//管理员
+        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//管理员
         static readonly byte[] doublezero = new byte[2] { 0x00, 0x00 };
         public static string name()
         {
@@ -55,6 +55,9 @@ namespace dapp_nnc
 
         public static bool transfer(byte[] from, byte[] to, BigInteger value)
         {
+            if (from.Length != 20 || to.Length != 20)
+                return false;
+
             if (value <= 0) return false;
 
             if (from == to) return true;
@@ -185,10 +188,6 @@ namespace dapp_nnc
                     if (args.Length != 3) return false;
                     byte[] from = (byte[])args[0];
                     byte[] to = (byte[])args[1];
-                    if (from == to)
-                        return true;
-                    if (from.Length != 20 || to.Length != 20)
-                        return false;
                     BigInteger value = (BigInteger)args[2];
                     //没有from签名，不让转
                     if (!Runtime.CheckWitness(from))
@@ -196,8 +195,8 @@ namespace dapp_nnc
                     //如果有跳板调用，不让转
                     if (ExecutionEngine.EntryScriptHash.AsBigInteger() != callscript.AsBigInteger())
                         return false;
-                    //如果to是不可收钱合约,不让转
-                    if (!IsPayable(to)) return false;
+                    //如果to是不可收钱合约,不让转   
+                    //if (!IsPayable(to)) return false;
 
                     return transfer(from, to, value);
                 }
@@ -265,12 +264,12 @@ namespace dapp_nnc
             return false;
         }
 
-        public static bool IsPayable(byte[] to)
-        {
-            var c = Blockchain.GetContract(to);
-            if (c.Equals(null))
-                return true;
-            return c.IsPayable;
-        }
+        //public static bool IsPayable(byte[] to)
+        //{
+        //    var c = Blockchain.GetContract(to);
+        //    if (c.Equals(null))
+        //        return true;
+        //    return c.IsPayable;
+        //}
     }
 }
