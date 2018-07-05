@@ -25,8 +25,8 @@ namespace dapp_nnc
             public BigInteger value;
         }
 
-        static readonly byte[] superAdmin = Helper.ToScriptHash("AMNFdmGuBrU1iaMbYd63L1zucYMdU9hvQU");//管理员
-
+        static readonly byte[] superAdmin = Helper.ToScriptHash("AMJBRyBQ66vvCwUSfk85Cmtmyf8vi1tuTt");//管理员
+        static readonly byte[] doublezero = new byte[2] { 0x00, 0x00 };
         public static string name()
         {
             return "NEO Name Credit";
@@ -89,9 +89,25 @@ namespace dapp_nnc
             info.from = from;
             info.to = to;
             info.value = value;
-            byte[] txinfo = Helper.Serialize(info);
+
+            var data = info.from;
+            var lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            //lendata是数据长度得bytearray，因为bigint长度不固定，统一加两个零，然后只取前面两个字节
+            //为什么要两个字节，因为bigint是含有符号位得，统一加个零安全，要不然长度129取一个字节就是负数了
+            var txinfo = lendata.Concat(data);
+
+            data = info.to;
+            lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            txinfo = txinfo.Concat(lendata).Concat(data);
+
+            data = value.AsByteArray();
+            lendata = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
+            txinfo = txinfo.Concat(lendata).Concat(data);
+            //新式实现方法只要一行
+            //byte[] txinfo = Helper.Serialize(info);
+
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-            var keytxid = new byte[] { 0x13 }.Concat(txid);
+            var keytxid = new byte[] { 0x12 }.Concat(txid);
             Storage.Put(Storage.CurrentContext, keytxid, txinfo);
         }
 
@@ -101,7 +117,25 @@ namespace dapp_nnc
             byte[] v = Storage.Get(Storage.CurrentContext, keytxid);
             if (v.Length == 0)
                 return null;
-            return Helper.Deserialize(v) as TransferInfo;
+
+            //老式实现方法
+            TransferInfo info = new TransferInfo();
+            int seek = 0;
+            var fromlen = (int)v.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.from = v.Range(seek, fromlen);
+            seek += fromlen;
+            var tolen = (int)v.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.to = v.Range(seek, tolen);
+            seek += tolen;
+            var valuelen = (int)v.Range(seek, 2).AsBigInteger();
+            seek += 2;
+            info.value = v.Range(seek, valuelen).AsBigInteger();
+            return info;
+
+            //序列化暂时还不适用
+            //return Helper.Deserialize(v) as TransferInfo;
         }
 
         public static object Main(string method, object[] args)

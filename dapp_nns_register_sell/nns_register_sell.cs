@@ -53,15 +53,8 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("3f7420285874867c30f32e44f304fd62ad1e9573")]
+        [Appcall("2761020e5e6dfcd8d37fdd50ff98fa0f93bccf54")]
         static extern object sgasCall(string method, object[] arr);
-
-        static readonly byte[]  nnc = Helper.ToScriptHash("ASirNKwjXg1bErEaZCAo2dxASErMaqKmoo");
-
-        // nnc 合约地址
-        // 竞拍手续费扣除
-        [Appcall("7c488f873d2fa3c2ccc4c8af8dbec83678111778")]
-        static extern object nncCall(string method, object[] arr);
 
         #region 域名转hash算法
         //域名转hash算法
@@ -175,11 +168,7 @@ namespace DApp
         public static SellingState getSellingStateByTXID(byte[] txid)
         {
             var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(txid));
-            if (data.Length > 0)
-                return Helper.Deserialize(data) as SellingState;
-            SellingState state = new SellingState();
-            return state;
-            /*
+
             SellingState state = new SellingState();
             state.id = txid;
             int seek = 0;
@@ -231,7 +220,6 @@ namespace DApp
             seek += len;
 
             return state;
-            */
         }
         public static SellingState getSellingStateByFullhash(byte[] fullhash)
         {
@@ -257,10 +245,6 @@ namespace DApp
 
             var key = new byte[] { 0x02 }.Concat(state.id);
 
-            onSellingState(state);
-            Storage.Put(Storage.CurrentContext, key, Helper.Serialize(state));
-
-            /*
             var doublezero = new byte[] { 0, 0 };
 
             var data = state.parenthash;
@@ -301,7 +285,6 @@ namespace DApp
 
             onSellingState(state);
             Storage.Put(Storage.CurrentContext, key, value);
-            */
         }
 
         public static bool wantBuy(byte[] who,byte[] hash, string domainname)
@@ -442,7 +425,7 @@ namespace DApp
             if (selling.startBlockSelling == 0)//就没开始过
                 return false;
             if (selling.endBlock > 0)//已经结束了
-                return false;
+                return true;
 
 
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
@@ -500,14 +483,14 @@ namespace DApp
                 return false;
 
             BigInteger use = 0;
+            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+            if (moneyfordomain == 0)
+                return true;
+            Storage.Delete(Storage.CurrentContext, pricekey);
+
             if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
             {
-                // 最大出价人不是我
-                // 结束了,把我的钱取回来
-                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
-                var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-                Storage.Delete(Storage.CurrentContext, pricekey);
-
                 var money = balanceOf(who);
 
                 use = moneyfordomain / 10;
@@ -518,24 +501,22 @@ namespace DApp
             }
             else
             {
-                //结束了,把我的钱扣了
-                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
-                var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-                Storage.Delete(Storage.CurrentContext, pricekey);
+
                 use = moneyfordomain;
             }
+            if (use > 0)
+            {
+                // 把扣的钱丢进管理员账户
+                object[] _param = new object[3];
+                _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
+                _param[1] = superAdmin; //to; //to
+                _param[2] = use.ToByteArray();//value
 
-            // 把扣的钱丢进coinpool
-            object[] _param = new object[3];
-            _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-            _param[1] = nnc; //to; //to
-            _param[2] = use.ToByteArray();//value
+                object[] id = new object[1];
+                id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
-            object[] id = new object[1];
-            id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-
-            sgasCall("transfer_app", _param);
-            nncCall("useGas", id);
+                sgasCall("transfer_app", _param);
+            }
 
             return true;
 
@@ -805,21 +786,6 @@ namespace DApp
                 {
                     byte[] txid = (byte[])args[0];// 提供一個txid,查這筆txid 的nep5入賬證明
                     return setMoneyIn(txid);
-                }
-                if (method == "test_pool")
-                {
-                    BigInteger b = 10;
-                    // 把扣的钱丢进coinpool
-                    object[] _param = new object[3];
-                    _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-                    _param[1] = nnc; //to
-                    _param[2] = b.ToByteArray();//value
-
-                    object[] id = new object[1];
-                    id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-
-                    sgasCall("transfer_app", _param);
-                    nncCall("useGas", id);
                 }
                 #endregion
 
