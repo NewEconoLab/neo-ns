@@ -68,8 +68,6 @@ namespace Nep5_Contract
         {
             if (value <= 0) return false;
 
-            if (from == to) return true;
-
             //付款方
             if (from.Length > 0)
             {
@@ -188,6 +186,11 @@ namespace Nep5_Contract
                     break;
                 }
             }
+
+            var lastTx = Storage.Get(Storage.CurrentContext,"lastTx");
+            if (lastTx.Length > 0 && tx.Hash == lastTx)
+                return false;
+            Storage.Put(Storage.CurrentContext,"lastTx", tx.Hash); 
 
             TransactionOutput[] outputs = tx.GetOutputs();
             ulong value = 0;
@@ -340,12 +343,18 @@ namespace Nep5_Contract
                     if (args.Length != 3) return false;
                     byte[] from = (byte[])args[0];
                     byte[] to = (byte[])args[1];
+                    BigInteger value = (BigInteger)args[2];
+
+                    var keyFrom = new byte[] { 0x11 }.Concat(from);
+                    BigInteger from_value = Storage.Get(Storage.CurrentContext, keyFrom).AsBigInteger();
+                    if (from_value < value)
+                        return false;
+
                     if (from == to)
                         return true;
                     if (from.Length == 0 || to.Length == 0)
                         return false;
 
-                    BigInteger value = (BigInteger)args[2];
 
                     //没有from签名，不让转
                     if (!Runtime.CheckWitness(from))
