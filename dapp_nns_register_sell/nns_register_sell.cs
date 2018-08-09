@@ -25,13 +25,13 @@ namespace DApp
         // 拍卖信息变更通知  sellingstate
         // 资金变更  moneystate
 
-        public delegate void deleSellingState(SellingState sellingState);
-        [DisplayName("domainstate")]
-        public static event deleSellingState onSellingState;
+        public delegate void deleAuctionState(AuctionState auctionState);
+        [DisplayName("auctionstate")]
+        public static event deleAuctionState onAuctionState;
 
-        public delegate void deleAddPrice(byte[] who, SellingState sellingState, BigInteger value);
-        [DisplayName("addprice")]
-        public static event deleAddPrice onAddPrice;
+        public delegate void deleAssetManagement(byte[] from, byte[] to, BigInteger value);
+        [DisplayName("assetmanagement")]
+        public static event deleAssetManagement onAssetManagement;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
         const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
@@ -109,6 +109,7 @@ namespace DApp
             public BigInteger TTL;
             public byte[] parentOwner;//当此域名注册时,他爹的所有者,记录这个,则可以检测域名的爹变了
         }
+
         private static OwnerInfo getOwnerInfo(byte[] fullhash)
         {
             object[] _param = new object[1];
@@ -116,6 +117,7 @@ namespace DApp
             var info = rootCall("getOwnerInfo", _param) as OwnerInfo;
             return info;
         }
+
         public static DomainUseState getDomainUseState(OwnerInfo info)
         {
             if (info.owner.Length == 0)
@@ -141,9 +143,9 @@ namespace DApp
         }
 
         //dict<domainhash,lastsellid> //查看域名最终的拍卖id
-        public class SellingState
+        public class AuctionState
         {
-            public byte[] id; //拍卖id,就是拍卖生成的txid
+            public byte[] id; //拍卖id,就是拍卖生成的bid
 
             public byte[] parenthash;//拍卖内容
             public string domain;//拍卖内容
@@ -164,12 +166,13 @@ namespace DApp
             public byte[] maxBuyer;//最大出价者
             public BigInteger lastBlock;//最后出价块
         }
-        public static SellingState getSellingStateByTXID(byte[] txid)
-        {
-            var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(txid));
 
-            SellingState state = new SellingState();
-            state.id = txid;
+        public static AuctionState getAuctionStateByAuctionID(byte[] auctionID)
+        {
+            var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(auctionID));
+
+            AuctionState state = new AuctionState();
+            state.id = auctionID;
             int seek = 0;
             int len = 0;
             len = (int)data.Range(seek, 2).AsBigInteger();
@@ -220,20 +223,20 @@ namespace DApp
 
             return state;
         }
-        public static SellingState getSellingStateByFullhash(byte[] fullhash)
+        public static AuctionState getAuctionStateByFullhash(byte[] fullhash)
         {
             //需要保存每一笔拍卖记录,因为过去拍卖者的资金都要锁定在这里
             byte[] id = Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(fullhash));
             if (id.Length == 0)//没在销售中
             {
-                SellingState _state = new SellingState();
+                AuctionState _state = new AuctionState();
                 _state.id = new byte[0];
                 _state.startBlockSelling = 0;
                 return _state;
             }
-            return getSellingStateByTXID(id);
+            return getAuctionStateByAuctionID(id);
         }
-        private static void saveSellingState(SellingState state)
+        private static void saveAuctionState(AuctionState state)
         {
             var fullhash = nameHashSub(state.parenthash, state.domain);
             byte[] _id = Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(fullhash));
@@ -282,11 +285,11 @@ namespace DApp
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
             value = value.Concat(datalen).Concat(data);
 
-            onSellingState(state);
+            onAuctionState(state);
             Storage.Put(Storage.CurrentContext, key, value);
         }
 
-        public static bool openbid(byte[] who,byte[] hash, string domainname)
+        public static bool startAuction(byte[] who,byte[] hash, string domainname)
         {
             //判断域名的合法性
             //域名的有效性  只能是a~z 0~9 2~32长
@@ -315,7 +318,7 @@ namespace DApp
             }
 
             //再看看有没有在拍卖
-            var selling = getSellingStateByFullhash(fullhash);
+            var selling = getAuctionStateByFullhash(fullhash);
             if (selling.startBlockSelling > 0)//已经在拍卖中了
             {
                 if (testEnd(selling) == false)//拍卖未结束不准
@@ -332,7 +335,7 @@ namespace DApp
                 }
             }
 
-            SellingState sell = new SellingState();
+            AuctionState sell = new AuctionState();
             sell.parenthash = hash;
             sell.domain = domainname;
             sell.domainTTL = info.TTL;
@@ -346,13 +349,13 @@ namespace DApp
 
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
-            saveSellingState(sell);
-            onAddPrice(who, sell, 0);
+            saveAuctionState(sell);
+            //onAddPrice(who, 0);
             return true;
         }
-        public static BigInteger balanceOfBid(byte[] who, byte[] txid)
+        public static BigInteger balanceOfBid(byte[] who, byte[] auctionID)
         {
-            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             return Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
         }
 
@@ -363,13 +366,13 @@ namespace DApp
         /// <param name="txid">拍卖id</param>
         /// <param name="value">增加的出价</param>
         /// <returns>加价成功？</returns>
-        public static bool raise(byte[] who, byte[] txid, BigInteger value)
+        public static bool raise(byte[] who, byte[] auctionID, BigInteger value)
         {
             var money = balanceOf(who);
             if (money < value)//钱不够
                 return false;
 
-            var selling = getSellingStateByTXID(txid);
+            var selling = getAuctionStateByAuctionID(auctionID);
             if (selling.startBlockSelling == 0 || selling.endBlock > 0)//没拍卖中了
             {
                 return false;
@@ -404,32 +407,32 @@ namespace DApp
             var key = new byte[] { 0x11 }.Concat(who);
             Storage.Put(Storage.CurrentContext, key, money);
 
-            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             moneyfordomain += value;
             Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
-            onAddPrice(who,selling,value);
+            onAssetManagement(who, auctionID, value);
             if (moneyfordomain > selling.maxPrice)
             {
                 // 高于最高出价了,更新我为最高出价者
                 selling.maxPrice = moneyfordomain;
                 selling.maxBuyer = who;
                 selling.lastBlock = Blockchain.GetHeight();
-                saveSellingState(selling);
+                saveAuctionState(selling);
             }
             return true;
         }
 
-        private static bool testEnd(SellingState selling)
+        private static bool testEnd(AuctionState state)
         {
-            if (selling.startBlockSelling == 0)//就没开始过
+            if (state.startBlockSelling == 0)//就没开始过
                 return false;
-            if (selling.endBlock > 0)//已经结束了
+            if (state.endBlock > 0)//已经结束了
                 return true;
 
 
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            var starttime = Blockchain.GetHeader((uint)state.startBlockSelling).Timestamp;
             var step2time = starttime + secondday * 2;
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
@@ -439,16 +442,16 @@ namespace DApp
 
             if (nowtime > endtime)//毫无悬念结束了
             {
-                selling.endBlock = Blockchain.GetHeight();
-                saveSellingState(selling);
+                state.endBlock = Blockchain.GetHeight();
+                saveAuctionState(state);
                 return true;
             }
 
-            var lasttime = Blockchain.GetHeader((uint)selling.lastBlock).Timestamp;
+            var lasttime = Blockchain.GetHeader((uint)state.lastBlock).Timestamp;
             if (lasttime < step2time)//阶段2没出过价
             {
-                selling.endBlock = Blockchain.GetHeight();
-                saveSellingState(selling);
+                state.endBlock = Blockchain.GetHeight();
+                saveAuctionState(state);
                 return true;
             }
 
@@ -459,8 +462,8 @@ namespace DApp
             //当处于10%位置的时候,只有10%的几率结束
             if ((nowheader.ConsensusData % 1000) < persenttime)//随机数小于块位置
             {
-                selling.endBlock = nowheader.Index; ;//突然死亡,无法出价了
-                saveSellingState(selling);
+                state.endBlock = nowheader.Index; ;//突然死亡,无法出价了
+                saveAuctionState(state);
                 return true;
             }
 
@@ -474,16 +477,16 @@ namespace DApp
         /// <param name="who">账户地址</param>
         /// <param name="txid">竞拍id</param>
         /// <returns></returns>
-        public static bool bidSettlement(byte[] who, byte[] txid)
+        public static bool bidSettlement(byte[] who, byte[] auctionID)
         {
-            var selling = getSellingStateByTXID(txid);
+            var selling = getAuctionStateByAuctionID(auctionID);
             bool b = testEnd(selling);
 
             if (b == false)
                 return false;
 
             BigInteger use = 0;
-            var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+            var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             if (moneyfordomain == 0)
                 return true;
@@ -504,6 +507,7 @@ namespace DApp
 
                 use = moneyfordomain;
             }
+            onAssetManagement(auctionID, who,(moneyfordomain - use));
             if (use > 0)
             {
                 // 把扣的钱丢进管理员账户
@@ -522,15 +526,15 @@ namespace DApp
 
 
         }
-        public static bool collectDomain(byte[] who, byte[] txid)
+        public static bool collectDomain(byte[] who, byte[] bid)
         {
-            var selling = getSellingStateByTXID(txid);
+            var selling = getAuctionStateByAuctionID(bid);
             var fullhash = nameHashSub(selling.parenthash, selling.domain);
             var info = getOwnerInfo(fullhash);
             if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
             {
                 //还要判断 
-                var pricekey = new byte[] { 0x21 }.Concat(txid).Concat(who);
+                var pricekey = new byte[] { 0x21 }.Concat(bid).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
                 if (moneyfordomain > 0)//没有endselling 付钱呢
                 {
@@ -706,22 +710,22 @@ namespace DApp
                     var info = getOwnerInfo((byte[])args[0]);
                     return getDomainUseState(info);
                 }
-                if (method == "getSellingStateByFullhash")//查看域名狀態
+                if (method == "getAuctionStateByFullhash")//查看域名狀態
                 {
-                    return getSellingStateByFullhash((byte[])args[0]);
+                    return getAuctionStateByFullhash((byte[])args[0]);
                 }
-                if (method == "getSellingStateByTXID")//查看域名狀態
+                if (method == "getAuctionStateByAuctionID")//查看域名狀態
                 {
-                    return getSellingStateByTXID((byte[])args[0]);
+                    return getAuctionStateByAuctionID((byte[])args[0]);
                 }
-                if (method == "openbid")//申請開標 (00,02,20)=>(10) //openbid
+                if (method == "startAuction")//申請开始拍卖 (00,02,20)=>(10) //openbid
                 {
                     byte[] who = (byte[])args[0];
                     if (Runtime.CheckWitness(who) == false)
                         return false;
                     byte[] nnshash = (byte[])args[1];
                     string domain = (string)args[2];
-                    return openbid(who, nnshash, domain);
+                    return startAuction(who, nnshash, domain);
                 }
                 if (method == "raise")//出價&加價 (10,11,12)=>不改變狀態  //raise
                 {
@@ -729,17 +733,17 @@ namespace DApp
                     if (Runtime.CheckWitness(who) == false)
                         return false;
 
-                    byte[] txid = (byte[])args[1];
+                    byte[] auctionID = (byte[])args[1];
                     BigInteger myprice = (BigInteger)args[2];
                     //如果有就充值到我的戶頭
                     //如果戶頭的錢夠扣,就參與投標
-                    return raise(who, txid, myprice);
+                    return raise(who, auctionID, myprice);
                 }
                 if (method == "balanceOfBid")// 看我投标的数额  balanceOfBid
                 {
                     byte[] who = (byte[])args[0];
-                    byte[] txid = (byte[])args[1];//拍賣id
-                    return balanceOfBid(who, txid);
+                    byte[] auctionID = (byte[])args[1];//拍賣id
+                    return balanceOfBid(who, auctionID);
                 }
                 if (method == "bidSettlement")// 限制狀態20 bidSettlement
                 {
@@ -747,19 +751,19 @@ namespace DApp
                     if (Runtime.CheckWitness(who) == false)
                         return false;
 
-                    byte[] txid = (byte[])args[1];//拍賣id
+                    byte[] auctionID = (byte[])args[1];//拍賣id
                                                   //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
                                                   //如果中標,拍賣金全扣,給我域名所有權
-                    return bidSettlement(who, txid);
+                    return bidSettlement(who, auctionID);
                 }
                 if (method == "collectDomain")//拿走我拍到的域名  collectdomain
                 {
                     byte[] who = (byte[])args[0];
                     if (Runtime.CheckWitness(who) == false)
                         return false;
-                    byte[] txid = (byte[])args[1];//拍賣id
+                    byte[] auctionID = (byte[])args[1];//拍賣id
 
-                    return collectDomain(who, txid);
+                    return collectDomain(who, auctionID);
                 }
                 if (method == "renewDomain")//续约域名
                 {
@@ -770,7 +774,6 @@ namespace DApp
                     string domain = (string)args[2];
                     return renewDomain(who, nnshash, domain);
                 }
-
                 #region 资金管理
                 if (method == "balanceOf")
                 {
