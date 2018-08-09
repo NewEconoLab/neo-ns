@@ -224,6 +224,12 @@ namespace DApp
         static byte[] owner_SetOwner(byte[] nnshash, byte[] newowner)
         {
             var info = getOwnerInfo(nnshash);
+
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            //判断有效期内才能转让
+            if (info.TTL < nowtime)
+                return new byte[] { 0x00 };
+
             info.owner = newowner;
             saveOwnerInfo(nnshash, info, false);
             //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
