@@ -12,7 +12,7 @@ namespace DApp
         //静态解析器实现
         //dict《domainhash+protocol,data>
         //dict<"调用nns查询权限 只有是"
-        [Appcall("537758fbe85505801faa7d7d7b75b37686ad7e2d")]
+        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
         static extern object rootCall(string method, object[] arr);
 
         static readonly byte[] superAdmin = Neo.SmartContract.Framework.Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
@@ -49,7 +49,7 @@ namespace DApp
         }
 
         #endregion
-        public static byte[] setResolveData(byte[] owner,byte[] nnshash,string subdomain,string protocol,byte[] data)
+        public static byte[] setResolverData(byte[] owner,byte[] nnshash,string subdomain,string protocol,byte[] data)
         {
             if(Runtime.CheckWitness(owner)==false)
             {
@@ -95,8 +95,8 @@ namespace DApp
                 if (method == "resolve")
                     return resolve((string)args[0], (byte[])args[1]);
                 //请求者调用
-                if (method == "setResolveData")
-                    return setResolveData((byte[])args[0], (byte[])args[1], (string)args[2], (string)args[3], (byte[])args[4]);
+                if (method == "setResolverData")
+                    return setResolverData((byte[])args[0], (byte[])args[1], (string)args[2], (string)args[3], (byte[])args[4]);
 
 
 
