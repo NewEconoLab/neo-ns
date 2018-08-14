@@ -528,7 +528,7 @@ namespace DApp
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
                 sgasCall("transfer_app", _param);
-                onAssetManagement(who, superAdmin, use);
+                onAssetManagement(auctionID, superAdmin, use);
             }
 
             return true;
