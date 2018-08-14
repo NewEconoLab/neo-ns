@@ -25,13 +25,17 @@ namespace DApp
         // 拍卖信息变更通知  sellingstate
         // 资金变更  moneystate
 
-        public delegate void deleAuctionState(AuctionState auctionState);
-        [DisplayName("auctionstate")]
-        public static event deleAuctionState onAuctionState;
+        public delegate void deleChangeAuctionState(AuctionState auctionState);
+        [DisplayName("changeAuctionstate")]
+        public static event deleChangeAuctionState onChangeAuctionState;
 
         public delegate void deleAssetManagement(byte[] from, byte[] to, BigInteger value);
         [DisplayName("assetmanagement")]
         public static event deleAssetManagement onAssetManagement;
+
+        public delegate void deleCollectDomain(byte[] who,byte[] auctionId,byte[] parentHash,string domain);
+        [DisplayName("collectdomain")]
+        public static event deleCollectDomain onCollectDomain;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
         const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
@@ -45,7 +49,10 @@ namespace DApp
         //~starttime + secondday*3  为拍卖阶段2
         //~strttime +secondy*5
 
+        //系统管理员
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
+        //系统费暂存账户
+        static readonly byte[] centralAccount = Helper.ToScriptHash("AVMm9kArWd9zfu8Aof7pcMCyQDDXdh8Tb8");
 
         //域名中心跳板合约地址
         [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
@@ -53,7 +60,7 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("2761020e5e6dfcd8d37fdd50ff98fa0f93bccf54")]
+        [Appcall("f5630f4baba6a0333bfb10153e5f853125465b48")]
         static extern object sgasCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -94,6 +101,7 @@ namespace DApp
         //        v = v.Concat(new byte[1] { 0x00 });
         //    return v;
         //}
+
         public enum DomainUseState
         {
             Empty,//未注冊
@@ -285,7 +293,7 @@ namespace DApp
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
             value = value.Concat(datalen).Concat(data);
 
-            onAuctionState(state);
+            onChangeAuctionState(state);
             Storage.Put(Storage.CurrentContext, key, value);
         }
 
@@ -520,21 +528,22 @@ namespace DApp
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
                 sgasCall("transfer_app", _param);
+                onAssetManagement(who, superAdmin, use);
             }
 
             return true;
 
 
         }
-        public static bool collectDomain(byte[] who, byte[] bid)
+        public static bool collectDomain(byte[] who, byte[] auctionID)
         {
-            var selling = getAuctionStateByAuctionID(bid);
+            var selling = getAuctionStateByAuctionID(auctionID);
             var fullhash = nameHashSub(selling.parenthash, selling.domain);
             var info = getOwnerInfo(fullhash);
             if (selling.maxBuyer.AsBigInteger() == who.AsBigInteger())
             {
                 //还要判断 
-                var pricekey = new byte[] { 0x21 }.Concat(bid).Concat(who);
+                var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
                 if (moneyfordomain > 0)//没有endselling 付钱呢
                 {
@@ -552,6 +561,7 @@ namespace DApp
                     var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                     if (r.AsBigInteger() == 1)
                     {
+                        onCollectDomain(who, auctionID, selling.parenthash, selling.domain);
                         return true;
                     }
                 }
