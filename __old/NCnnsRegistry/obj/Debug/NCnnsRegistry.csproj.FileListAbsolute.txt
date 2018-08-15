@@ -1,0 +1,8 @@
+D:\work\neo-ns\NCnnsRegistry\bin\Debug\NCnnsRegistry.dll
+D:\work\neo-ns\NCnnsRegistry\bin\Debug\NCnnsRegistry.pdb
+D:\work\neo-ns\NCnnsRegistry\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\NCnnsRegistry\obj\Debug\NCnnsRegistry.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\NCnnsRegistry\obj\Debug\NCnnsRegistry.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\NCnnsRegistry\obj\Debug\NCnnsRegistry.csproj.CopyComplete
+D:\work\neo-ns\NCnnsRegistry\obj\Debug\NCnnsRegistry.dll
+D:\work\neo-ns\NCnnsRegistry\obj\Debug\NCnnsRegistry.pdb

@@ -1,0 +1,8 @@
+D:\work\neo-ns\sgas3\bin\Debug\sgas3.dll
+D:\work\neo-ns\sgas3\bin\Debug\sgas3.pdb
+D:\work\neo-ns\sgas3\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\sgas3\obj\Debug\dapp_sgas.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\sgas3\obj\Debug\dapp_sgas.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\sgas3\obj\Debug\dapp_sgas.csproj.CopyComplete
+D:\work\neo-ns\sgas3\obj\Debug\sgas3.dll
+D:\work\neo-ns\sgas3\obj\Debug\sgas3.pdb

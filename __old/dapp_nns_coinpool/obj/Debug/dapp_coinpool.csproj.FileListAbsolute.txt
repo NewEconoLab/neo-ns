@@ -1,0 +1,7 @@
+D:\work\neo-ns\dapp_nns_coinpool\bin\Debug\register_fifo.dll
+D:\work\neo-ns\dapp_nns_coinpool\bin\Debug\register_fifo.pdb
+D:\work\neo-ns\dapp_nns_coinpool\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\dapp_nns_coinpool\obj\Debug\dapp_coinpool.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\dapp_nns_coinpool\obj\Debug\dapp_coinpool.csproj.CopyComplete
+D:\work\neo-ns\dapp_nns_coinpool\obj\Debug\register_fifo.dll
+D:\work\neo-ns\dapp_nns_coinpool\obj\Debug\register_fifo.pdb

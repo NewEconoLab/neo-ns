@@ -47,6 +47,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nnc3.0", "dapp_nnc3.0\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nnc4.0", "dapp_nnc4.0\dapp_nnc4.0.csproj", "{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test3", "test3\test3.csproj", "{C2C24C12-E151-4536-B06F-D64A5B2862A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +107,10 @@ Global
 		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C2C24C12-E151-4536-B06F-D64A5B2862A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2C24C12-E151-4536-B06F-D64A5B2862A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2C24C12-E151-4536-B06F-D64A5B2862A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2C24C12-E151-4536-B06F-D64A5B2862A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,6 +130,7 @@ Global
 		{FF20215D-332A-498C-9B96-630376AA76BA} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
 		{4C296095-28DE-4659-96DD-676A2BD87410} = {B34FC491-1AF3-4DF7-8CAE-1C6421FD5EDC}
 		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0} = {50CBC326-02AE-4561-9892-A14398A8C582}
+		{C2C24C12-E151-4536-B06F-D64A5B2862A0} = {920C393E-2468-4E56-B333-85451BBBFB9E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA753102-3A6A-40F2-B3CC-440DE8A9A356}

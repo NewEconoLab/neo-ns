@@ -1,0 +1,8 @@
+D:\work\neo-ns\NCnnsResolvers\bin\Debug\NCnnsResolvers.dll
+D:\work\neo-ns\NCnnsResolvers\bin\Debug\NCnnsResolvers.pdb
+D:\work\neo-ns\NCnnsResolvers\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\NCnnsResolvers\obj\Debug\NCnnsResolverAddr.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\NCnnsResolvers\obj\Debug\NCnnsResolverAddr.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\NCnnsResolvers\obj\Debug\NCnnsResolverAddr.csproj.CopyComplete
+D:\work\neo-ns\NCnnsResolvers\obj\Debug\NCnnsResolvers.dll
+D:\work\neo-ns\NCnnsResolvers\obj\Debug\NCnnsResolvers.pdb

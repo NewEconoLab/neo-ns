@@ -1,0 +1,9 @@
+D:\work\neo-ns\dapp_sgas\bin\Debug\Nep5.5gas_Contract.dll
+D:\work\neo-ns\dapp_sgas\bin\Debug\Nep5.5gas_Contract.pdb
+D:\work\neo-ns\dapp_sgas\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\dapp_sgas\bin\Debug\Neo.SmartContract.Framework.pdb
+D:\work\neo-ns\dapp_sgas\obj\Debug\dapp_sgas.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\dapp_sgas\obj\Debug\dapp_sgas.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\dapp_sgas\obj\Debug\dapp_sgas.csproj.CopyComplete
+D:\work\neo-ns\dapp_sgas\obj\Debug\Nep5.5gas_Contract.dll
+D:\work\neo-ns\dapp_sgas\obj\Debug\Nep5.5gas_Contract.pdb

@@ -1,0 +1,13 @@
+D:\work\neo-ns\dapp_sags3.0\obj\Debug\dapp_nnc3.0.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\dapp_sags3.0\obj\Debug\dapp_nnc3.0.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\dapp_sags3.0\obj\Debug\sgas3.dll
+D:\work\neo-ns\dapp_sags3.0\obj\Debug\sgas3.pdb
+D:\work\neo-ns\dapp_nnc3.0\bin\Debug\nnc.dll
+D:\work\neo-ns\dapp_nnc3.0\bin\Debug\nnc.pdb
+D:\work\neo-ns\dapp_nnc3.0\bin\Debug\Neo.SmartContract.Framework.dll
+D:\work\neo-ns\dapp_nnc3.0\bin\Debug\Neo.SmartContract.Framework.pdb
+D:\work\neo-ns\dapp_nnc3.0\obj\Debug\dapp_nnc3.0.csprojResolveAssemblyReference.cache
+D:\work\neo-ns\dapp_nnc3.0\obj\Debug\dapp_nnc3.0.csproj.CoreCompileInputs.cache
+D:\work\neo-ns\dapp_nnc3.0\obj\Debug\dapp_nnc3.0.csproj.CopyComplete
+D:\work\neo-ns\dapp_nnc3.0\obj\Debug\nnc.dll
+D:\work\neo-ns\dapp_nnc3.0\obj\Debug\nnc.pdb
