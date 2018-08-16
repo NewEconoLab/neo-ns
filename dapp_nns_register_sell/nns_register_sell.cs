@@ -26,16 +26,24 @@ namespace DApp
         // 资金变更  moneystate
 
         public delegate void deleChangeAuctionState(AuctionState auctionState);
-        [DisplayName("changeAuctionstate")]
+        [DisplayName("changeAuctionState")]
         public static event deleChangeAuctionState onChangeAuctionState;
 
         public delegate void deleAssetManagement(byte[] from, byte[] to, BigInteger value);
-        [DisplayName("assetmanagement")]
+        [DisplayName("assetManagement")]
         public static event deleAssetManagement onAssetManagement;
 
         public delegate void deleCollectDomain(byte[] who,byte[] auctionId,byte[] parentHash,string domain);
-        [DisplayName("collectdomain")]
+        [DisplayName("collectDomain")]
         public static event deleCollectDomain onCollectDomain;
+
+        public delegate void deleStartAuction(byte[] who, byte[] auctionId, byte[] parentHash, string domain);
+        [DisplayName("startAuction")]
+        public static event deleStartAuction onStartAuction;
+
+        public delegate void deleRaiseEndsAuction(byte[] who, byte[] auctionId);
+        [DisplayName("raiseEndsAuction")]
+        public static event deleRaiseEndsAuction onRaiseEndsAuction;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
         const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
@@ -358,7 +366,7 @@ namespace DApp
             var txid = (ExecutionEngine.ScriptContainer as Transaction).Hash;
             sell.id = txid;
             saveAuctionState(sell);
-            //onAddPrice(who, 0);
+            onStartAuction(who, txid, hash, domainname);
             return true;
         }
         public static BigInteger balanceOfBid(byte[] who, byte[] auctionID)
@@ -403,7 +411,7 @@ namespace DApp
             }
             else //随机期怎么办,有可能这里就直接被结束了
             {
-                var b = testEnd(selling);//测试能不能结束
+                var b = testEnd(selling,who);//测试能不能结束
                 if (b)
                     return false;
                 //没结束就可以出价
@@ -431,7 +439,7 @@ namespace DApp
             return true;
         }
 
-        private static bool testEnd(AuctionState state)
+        private static bool testEnd(AuctionState state,byte[] who = null)
         {
             if (state.startBlockSelling == 0)//就没开始过
                 return false;
@@ -472,6 +480,7 @@ namespace DApp
             {
                 state.endBlock = nowheader.Index; ;//突然死亡,无法出价了
                 saveAuctionState(state);
+                onRaiseEndsAuction(who, state.id);
                 return true;
             }
 
