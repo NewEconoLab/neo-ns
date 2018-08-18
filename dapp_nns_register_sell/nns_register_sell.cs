@@ -161,7 +161,7 @@ namespace DApp
         //dict<domainhash,lastsellid> //查看域名最终的拍卖id
         public class AuctionState
         {
-            public byte[] id; //拍卖id,就是拍卖生成的bid
+            public byte[] id; //拍卖id,就是拍卖生成的auctionid
 
             public byte[] parenthash;//拍卖内容
             public string domain;//拍卖内容
@@ -536,7 +536,7 @@ namespace DApp
                 object[] id = new object[1];
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
-                sgasCall("transfer_app", _param);
+                sgasCall("transferAPP", _param);
                 onAssetManagement(auctionID, superAdmin, use);
             }
 
@@ -618,7 +618,7 @@ namespace DApp
             {
                 object[] _p = new object[1];
                 _p[0] = txid;
-                var info = sgasCall("getTXInfo", _p);
+                var info = sgasCall("getTxInfo", _p);
                 if (((object[])info).Length == 3)
                     return info as TransferInfo;
             }
@@ -685,7 +685,7 @@ namespace DApp
             trans[1] = who;
             trans[2] = count;
 
-            bool succ = (bool)sgasCall("transfer_app", trans);
+            bool succ = (bool)sgasCall("transferAPP", trans);
             if (succ)
             {
                 money -= count;
