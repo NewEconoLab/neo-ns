@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>dapp_nns_domainCompany</RootNamespace>
-    <AssemblyName>dapp_nns_domainCompany</AssemblyName>
+    <AssemblyName>dapp_nns_domainTransaction</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

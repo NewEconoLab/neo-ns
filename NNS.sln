@@ -31,7 +31,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nnc4.0", "dapp_nnc4.0\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nns_domainTransaction", "nns_domainTransaction", "{124BA1C5-DBCB-4A85-9BCA-A4943A360F07}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domainCompany", "dapp_nns_domainCompany\dapp_nns_domainCompany.csproj", "{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domainTransaction", "dapp_nns_domainTransaction\dapp_nns_domainTransaction.csproj", "{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
