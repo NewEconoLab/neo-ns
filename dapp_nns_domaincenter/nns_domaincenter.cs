@@ -35,9 +35,9 @@ namespace DApp
         //const int blockday = 4096;//粗略一天的块数
 
         static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.ToScriptHash("AYcWLcuPaZsWZkM7avxN5eHfap3hGhTqye");//注意 script_hash 是反序的
-                                                                                                        //跳板合约0x77e193f1af44a61ed3613e6e3442a0fc809bb4b8
-                                                                                                        //地址AYcWLcuPaZsWZkM7avxN5eHfap3hGhTqye
+        static readonly byte[] jumpContract = Helper.ToScriptHash("AWEFWzvXM9QFUQsppB6BNdoraT3oZtsUo8");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x8e813d36b159400e4889ba0aed0c42b02dd58e9e
+                                                                                                        //地址AWEFWzvXM9QFUQsppB6BNdoraT3oZtsUo8
 
         //改爲結構化方法
         //public static object[] getInfo(byte[] nnshash)
@@ -108,14 +108,6 @@ namespace DApp
                 var subhash = nameHashSub(hash, domainarray[i]);
 
                 var subinfo = getOwnerInfo(subhash);
-                //不用nep4了，存了這個關係，所以可以驗證了
-                //var regcall = (deleDyncall)register.ToDelegate();
-                // (byte[])regcall("getSubOwner", new object[] { hash, subname });
-                // Storage.Get(Storage.CurrentContext, subhash.Concat(new byte[] { 0x00 }));
-                //if (regowner.Length == 0)//没有所有者，断链
-                //{
-                //    return new byte[] { 0x00 };
-                //}
                 if (subinfo.parentOwner.AsBigInteger() != info.owner.AsBigInteger())//所有者对不上，断链
                 {
                     return new byte[] { 0x00 };
@@ -608,7 +600,7 @@ namespace DApp
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magic = "20180606";
+                string magic = "20180820";
                 //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
                 var callscript = ExecutionEngine.CallingScriptHash;
 

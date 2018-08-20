@@ -29,7 +29,7 @@ namespace DApp
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magicstr = "for nns test 002";
+                string magic = "20180820";
                 if (method == "_setTarget")
                 {
                     if (Runtime.CheckWitness(superAdmin))
@@ -39,9 +39,8 @@ namespace DApp
                     }
                     return new byte[] { 0x00 };
                 }
-
                 var callscript = ExecutionEngine.CallingScriptHash;
-                byte[] target = Storage.Get(Storage.CurrentContext, "target");
+                byte[] target = Storage.Get(Storage.CurrentContext,"target");
 
                 #region 所有者接口 直接调用&智能合约
                 if (method == "owner_SetOwner")

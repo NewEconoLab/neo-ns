@@ -63,7 +63,7 @@ namespace DApp
         static readonly byte[] centralAccount = Helper.ToScriptHash("AVMm9kArWd9zfu8Aof7pcMCyQDDXdh8Tb8");
 
         //域名中心跳板合约地址
-        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
+        [Appcall("8e813d36b159400e4889ba0aed0c42b02dd58e9e")]
         static extern object rootCall(string method, object[] arr);
 
         // sgas合约地址
@@ -433,9 +433,9 @@ namespace DApp
                 // 高于最高出价了,更新我为最高出价者
                 selling.maxPrice = moneyfordomain;
                 selling.maxBuyer = who;
-                selling.lastBlock = Blockchain.GetHeight();
-                saveAuctionState(selling);
             }
+            selling.lastBlock = Blockchain.GetHeight();
+            saveAuctionState(selling);
             return true;
         }
 
