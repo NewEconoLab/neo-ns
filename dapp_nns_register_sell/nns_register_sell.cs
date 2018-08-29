@@ -52,7 +52,7 @@ namespace DApp
         //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
         //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
-        const int secondmonth = secondday * 30;//30天可以续约
+        const int secondmonth = secondday * 30 * 3;//90天可以续约
         //starttime + secondday*2  为拍卖阶段1
         //~starttime + secondday*3  为拍卖阶段2
         //~strttime +secondy*5
@@ -587,7 +587,7 @@ namespace DApp
                 return false;
             if (info.TTL < nowtime)
                 return false;
-            if ((info.TTL-nowtime) < (secondmonth * 3))//30*3天内 可以续约
+            if ((info.TTL-nowtime) < secondmonth)//90天内 可以续约
             {
                 object[] obj = new object[4];
                 obj[0] = parenthash;

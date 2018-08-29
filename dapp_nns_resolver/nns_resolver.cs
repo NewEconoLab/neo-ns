@@ -12,15 +12,15 @@ namespace DApp
         //静态解析器实现
         //dict《domainhash+protocol,data>
         //dict<"调用nns查询权限 只有是"
-        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
+        [Appcall("8e813d36b159400e4889ba0aed0c42b02dd58e9e")]
         static extern object rootCall(string method, object[] arr);
 
         static readonly byte[] superAdmin = Neo.SmartContract.Framework.Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
 
         //通知，设置解析操作
-        public delegate void deleSetResolveData(byte[] namehash, string protocol, byte[] data);
-        [DisplayName("setResolveData")]
-        public static event deleSetResolveData onSetResolveData;
+        public delegate void deleSetResolverData(byte[] namehash, string protocol, byte[] data);
+        [DisplayName("setResolverData")]
+        public static event deleSetResolverData onSetResolverData;
 
         #region 域名转hash算法
         //域名转hash算法
@@ -66,7 +66,7 @@ namespace DApp
                 key = new byte[] { 0x31 }.Concat(key);
                 Storage.Put(Storage.CurrentContext, key, data);
                 //通知解析设置动作
-                onSetResolveData(fullhash, protocol, data);
+                onSetResolverData(fullhash, protocol, data);
                 return new byte[] { 0x01 };
             }
             return new byte[] { 0x00 };
