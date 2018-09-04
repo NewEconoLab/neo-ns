@@ -46,11 +46,11 @@ namespace DApp
         public static event deleRaiseEndsAuction onRaiseEndsAuction;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
-        const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
-        const int secondday = 5 * 60;//加速版,300秒当一天
+        //const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
+        //const int secondday = 5 * 60;//加速版,300秒当一天
 
-        //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
-        //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
+        const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
+        const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
         const int secondmonth = secondday * 30 * 3;//90天可以续约
         //starttime + secondday*2  为拍卖阶段1
@@ -68,7 +68,7 @@ namespace DApp
 
         // sgas合约地址
         // sgas转账
-        [Appcall("f5630f4baba6a0333bfb10153e5f853125465b48")]
+        [Appcall("9121e89e8a0849857262d67c8408601b5e8e0524")]
         static extern object sgasCall(string method, object[] arr);
 
         #region 域名转hash算法
