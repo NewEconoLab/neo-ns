@@ -19,12 +19,6 @@ namespace DApp
         // dict<0x21+sellingid+user,money> 在拍卖中参与竞拍的数额
         // dict<0x12+id,1> 保存收据
 
-        //注册器通知
-        // （基础）域名信息变更 OwnerInfo 域名中心实现了
-        //拍卖注册器通知
-        // 拍卖信息变更通知  sellingstate
-        // 资金变更  moneystate
-
         public delegate void deleChangeAuctionState(AuctionState auctionState);
         [DisplayName("changeAuctionState")]
         public static event deleChangeAuctionState onChangeAuctionState;
@@ -57,19 +51,17 @@ namespace DApp
         //~starttime + secondday*3  为拍卖阶段2
         //~strttime +secondy*5
 
-        //系统管理员
-        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");
         //系统费暂存账户
-        static readonly byte[] centralAccount = Helper.ToScriptHash("AVMm9kArWd9zfu8Aof7pcMCyQDDXdh8Tb8");
+        static readonly byte[] centralAccount = Helper.ToScriptHash("ASBZYHHoTxmSFCHZbgYx3HYx3aMKvMhWfw");
 
         //域名中心跳板合约地址
-        [Appcall("8e813d36b159400e4889ba0aed0c42b02dd58e9e")]
+        [Appcall("348387116c4a75e420663277d9c02049907128c7")]
         static extern object rootCall(string method, object[] arr);
 
-        // sgas合约地址
-        // sgas转账
+        // cgas合约地址
+        // cgas转账
         [Appcall("9121e89e8a0849857262d67c8408601b5e8e0524")]
-        static extern object sgasCall(string method, object[] arr);
+        static extern object cgasCall(string method, object[] arr);
 
         #region 域名转hash算法
         //域名转hash算法
@@ -98,18 +90,6 @@ namespace DApp
         }
 
         #endregion
-        //private static byte[] byteLen(BigInteger n)
-        //{
-        //    byte[] v = n.AsByteArray();
-        //    if (v.Length > 2)
-        //        throw new Exception("not support");
-        //    if (v.Length < 2)
-        //        v = v.Concat(new byte[1] { 0x00 });
-        //    if (v.Length < 2)
-        //        v = v.Concat(new byte[1] { 0x00 });
-        //    return v;
-        //}
-
         public enum DomainUseState
         {
             Empty,//未注冊
@@ -280,10 +260,6 @@ namespace DApp
             data = state.startBlockSelling.AsByteArray();
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
             value = value.Concat(datalen).Concat(data);
-
-            //data = state.startBlockRan.AsByteArray();
-            //datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            //value = value.Concat(datalen).Concat(data);
 
             data = state.endBlock.AsByteArray();
             datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
@@ -530,14 +506,14 @@ namespace DApp
                 // 把扣的钱丢进管理员账户
                 object[] _param = new object[3];
                 _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
-                _param[1] = superAdmin; //to; //to
+                _param[1] = centralAccount; //to; //to
                 _param[2] = use.ToByteArray();//value
 
                 object[] id = new object[1];
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
-                sgasCall("transferAPP", _param);
-                onAssetManagement(auctionID, superAdmin, use);
+                cgasCall("transferAPP", _param);
+                onAssetManagement(auctionID, centralAccount, use);
             }
 
             return true;
@@ -618,7 +594,7 @@ namespace DApp
             {
                 object[] _p = new object[1];
                 _p[0] = txid;
-                var info = sgasCall("getTxInfo", _p);
+                var info = cgasCall("getTxInfo", _p);
                 if (((object[])info).Length == 3)
                     return info as TransferInfo;
             }
@@ -685,7 +661,7 @@ namespace DApp
             trans[1] = who;
             trans[2] = count;
 
-            bool succ = (bool)sgasCall("transferAPP", trans);
+            bool succ = (bool)cgasCall("transferAPP", trans);
             if (succ)
             {
                 money -= count;
@@ -809,47 +785,6 @@ namespace DApp
                 {
                     byte[] txid = (byte[])args[0];// 提供一個txid,查這筆txid 的nep5入賬證明
                     return setMoneyIn(txid);
-                }
-                #endregion
-
-                #region 升级合约,耗费490,仅限管理员
-                if (method == "upgrade")
-                {
-                    //不是管理员 不能操作
-                    if (!Runtime.CheckWitness(superAdmin))
-                        return false;
-
-                    if (args.Length != 1 && args.Length != 9)
-                        return false;
-
-                    byte[] script = Blockchain.GetContract(ExecutionEngine.ExecutingScriptHash).Script;
-                    byte[] new_script = (byte[])args[0];
-                    //如果传入的脚本一样 不继续操作
-                    if (script == new_script)
-                        return false;
-
-                    byte[] parameter_list = new byte[] { 0x07, 0x10 };
-                    byte return_type = 0x05;
-                    bool need_storage = (bool)(object)01;
-                    string name = "register_sell";
-                    string version = "1";
-                    string author = "NEL";
-                    string email = "0";
-                    string description = "拍卖注册器";
-
-                    if (args.Length == 9)
-                    {
-                        parameter_list = (byte[])args[1];
-                        return_type = (byte)args[2];
-                        need_storage = (bool)args[3];
-                        name = (string)args[4];
-                        version = (string)args[5];
-                        author = (string)args[6];
-                        email = (string)args[7];
-                        description = (string)args[8];
-                    }
-                    Contract.Migrate(new_script, parameter_list, return_type, need_storage, name, version, author, email, description);
-                    return true;
                 }
                 #endregion
             }

@@ -12,7 +12,6 @@ namespace DApp
     public class nns_domaincenter : SmartContract
     {
         //域名中心 
-        //    域名中心是一个不会改变地址的合约，他的作用是管理某一个域名的数据
         //使用存储
         //DomainInfo 这两个是不变的
         //{
@@ -34,21 +33,9 @@ namespace DApp
 
         //const int blockday = 4096;//粗略一天的块数
 
-        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
-        static readonly byte[] jumpContract = Helper.ToScriptHash("AWEFWzvXM9QFUQsppB6BNdoraT3oZtsUo8");//注意 script_hash 是反序的
-                                                                                                        //跳板合约0x8e813d36b159400e4889ba0aed0c42b02dd58e9e
-                                                                                                        //地址AWEFWzvXM9QFUQsppB6BNdoraT3oZtsUo8
-
-        //改爲結構化方法
-        //public static object[] getInfo(byte[] nnshash)
-        //{
-        //    object[] ret = new object[4];
-        //    ret[0] = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
-        //    ret[1] = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
-        //    ret[2] = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }));
-        //    ret[3] = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x03 }));
-        //    return ret;
-        //}
+        static readonly byte[] superAdmin = Helper.ToScriptHash("AMNFdmGuBrU1iaMbYd63L1zucYMdU9hvQU");//初始管理員
+        static readonly byte[] jumpContract = Helper.ToScriptHash("AZvvZk68M8PG4tfxV6o3a19w8TFM626EzG");//注意 script_hash 是反序的
+                                                                                                        //跳板合约0x348387116c4a75e420663277d9c02049907128c7
         //通知 域名信息變更
         public delegate void deleOwnerInfoChange(byte[] namehash, OwnerInfo addr, bool newdomain);
         [DisplayName("changeOwnerInfo")]
@@ -68,7 +55,6 @@ namespace DApp
             {
                 var info = getOwnerInfo(phash);
                 phash = info.parenthash;
-                //if (info.root == 0)
                 {
                     if (i == 0)
                         outstr = info.domain;
@@ -83,23 +69,12 @@ namespace DApp
         static byte[] resolveFull(string protocol, string[] domainarray)
         {
             byte[] hash = nameHash(domainarray[0]);
-            //根域名不用管ttl
-            //var ttl = Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 })).AsBigInteger();
-            //if (ttl < height)
-            //{
-            //    return null;
-            //}
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-
-            //{ test.aaa.second //一層層上}
-            //{test.aaa.second } for(i =1;i<2;i++)
             for (var i = 1; i < domainarray.Length - 1; i++)
             {
                 var info = getOwnerInfo(hash);
                 byte[] register = info.register;
-                // Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x01 }));
                 byte[] resolver = info.resolver;
-                // Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x02 }));
                 if (register.Length == 0)//這個域名沒有注冊其
                 {
                     return new byte[] { 0x00 };
@@ -112,10 +87,7 @@ namespace DApp
                 {
                     return new byte[] { 0x00 };
                 }
-
-
                 hash = subhash;
-                //var ttl = info.TTL;// Storage.Get(Storage.CurrentContext, hash.Concat(new byte[] { 0x03 })).AsBigInteger();
                 if (info.TTL < nowtime)//過期了
                 {
                     return new byte[] { 0x00 };
@@ -133,7 +105,6 @@ namespace DApp
             }
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             var ttl = getOwnerInfo(ttlhash).TTL;
-            //Storage.Get(Storage.CurrentContext, ttlhash.Concat(new byte[] { 0x03 })).AsBigInteger();
             if (ttl < Blockchain.GetHeight())
             {
                 return new byte[] { 0x00 };
@@ -148,12 +119,10 @@ namespace DApp
             if (fullhash.AsBigInteger() == nnshash.AsBigInteger())//是一个根查询
             {
                 var resolverFull = getOwnerInfo(fullhash).resolver;
-                // Storage.Get(Storage.CurrentContext, fullhash.Concat(new byte[] { 0x02 }));
                 return _doresolve(resolverFull, nnshash, protocol, nnshash);
             }
 
             var resolverSub = getOwnerInfo(fullhash).resolver;
-            // Storage.Get(Storage.CurrentContext, fullhash.Concat(new byte[] { 0x02 }));
             if (resolverSub.Length != 0)//如果他有一个子解析器,调用子解析器
             {
                 return _doresolve(resolverSub, fullhash, protocol, fullhash);
@@ -161,20 +130,12 @@ namespace DApp
 
             //然后查根域名是否对应解析器
             var resolver = getOwnerInfo(nnshash).resolver;
-            // Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }));
             return _doresolve(resolver, nnshash, protocol, fullhash);
         }
         //快速解析
         static byte[] initRoot(string rootname, byte[] newregister)
         {
             var nnshash = nameHash(rootname);
-
-            //var oldinfo = GetNNSInfo(nnshash);
-            //if (oldinfo.domain.Length > 0)
-            //{
-            //    return new byte[] { 0x00, 0x01 };//已经存在根域名记录了，可以允许修改的吧
-            //}
-
             bool newdomain = false;
             var ninfo = getOwnerInfo(nnshash);
             if (ninfo.domain.Length == 0)
@@ -193,22 +154,6 @@ namespace DApp
             ninfo.root = 1;
             ninfo.domain = rootname;
             saveOwnerInfo(nnshash, ninfo, newdomain);
-            //OwnerInfo oinfo = new OwnerInfo();
-            //oinfo.owner = superAdmin;
-            //oinfo.register = newregister;
-            //oinfo.resolver = new byte[0];
-            //oinfo.TTL = 0;
-            //oinfo.parentOwner = new byte[0];
-            //saveOwnerInfo(nnshash, oinfo);
-            //var oinfo = getInfo(nnshash);
-            ////var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
-            //if (oinfo.owner.Length == 0)
-            //{
-            //    //初始管理員衹有一個功能,就是轉讓根域名管理權，而且是一次性的，一旦轉讓出去，初始管理員就沒用了
-            //    Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), superAdmin);
-            //    Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), superAdmin);
-            //    return new byte[] { 0x01 };
-            //}
             return new byte[] { 0x01 };
         }
         #region 所有者功能
@@ -224,7 +169,6 @@ namespace DApp
 
             info.owner = newowner;
             saveOwnerInfo(nnshash, info, false);
-            //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }), newowner);
             return new byte[] { 0x01 };
         }
         //所有者设置注册器
@@ -233,7 +177,6 @@ namespace DApp
             var info = getOwnerInfo(nnshash);
             info.register = register;
             saveOwnerInfo(nnshash, info, false);
-            //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }), register);
             return new byte[] { 0x01 };
         }
         //所有者设置解析器
@@ -242,7 +185,6 @@ namespace DApp
             var info = getOwnerInfo(nnshash);
             info.resolver = resolver;
             saveOwnerInfo(nnshash, info, false);
-            //Storage.Put(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x02 }), resolver);
             return new byte[] { 0x01 };
         }
         #endregion
@@ -396,59 +338,6 @@ namespace DApp
             onChangeOwnerInfo(hash, info, newdomain);
         }
 
-        //public static NameInfo getNameInfo(byte[] hash)
-        //{
-        //    var key = new byte[] { 0x11 }.Concat(hash);
-
-        //    var data = Storage.Get(Storage.CurrentContext, key);
-        //    if (data.Length == 0)
-        //    {
-        //        NameInfo einfo = new NameInfo();
-        //        einfo.domain = "";
-        //        return einfo;
-        //    }
-
-        //    //老式实现方法
-        //    NameInfo info = new NameInfo();
-        //    int seek = 0;
-        //    var domainlen = (int)data.Range(seek, 2).AsBigInteger();
-        //    seek += 2;
-        //    info.domain = data.Range(seek, domainlen).AsString();
-        //    seek += domainlen;
-
-        //    var parenthashlen = (int)data.Range(seek, 2).AsBigInteger();
-        //    seek += 2;
-        //    info.parenthash = data.Range(seek, parenthashlen);
-        //    seek += parenthashlen;
-
-        //    var rootlen = (int)data.Range(seek, 2).AsBigInteger();
-        //    seek += 2;
-        //    info.root = data.Range(seek, rootlen).AsBigInteger();
-        //    return info;
-
-
-        //    //var nnsInfo = Helper.Deserialize(data) as NameInfo;
-        //    //return nnsInfo;
-        //}
-
-        //static void saveNameInfo(byte[] hash, NameInfo info)
-        //{
-
-
-        //    var key = new byte[] { 0x11 }.Concat(hash);
-
-        //    //老实实现法
-
-        //    byte[] value = byteLen(info.domain.Length).Concat(info.domain.AsByteArray());
-        //    value = value.Concat(byteLen(info.parenthash.Length)).Concat(info.parenthash);
-        //    value = value.Concat(byteLen(info.root.AsByteArray().Length)).Concat(info.root.AsByteArray());
-        //    //新式实现法
-        //    //var value = Helper.Serialize(info);
-
-        //    Storage.Put(Storage.CurrentContext, key, value);
-
-        //    onInitDomain(info.parenthash, info.domain, info);
-        //}
         static byte[] register_SetSubdomainOwner(byte[] nnshash, string subdomain, byte[] owner, BigInteger ttl, OwnerInfo pinfo)
         {
             if (subdomain.AsByteArray().Length == 0)
@@ -551,7 +440,6 @@ namespace DApp
                 byte[] owner = p1;
                 byte[] nnshash = p2;
                 var info = getOwnerInfo(nnshash);
-                //var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
                 if (_callscript.AsBigInteger() == info.owner.AsBigInteger())//智能合約所有者
                 {
                     return 4;
@@ -569,7 +457,6 @@ namespace DApp
                 byte[] owner = p0;
                 byte[] nnshash = p1;
                 var info = getOwnerInfo(nnshash);
-                //var o = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x00 }));
                 if (callscript.AsBigInteger() == info.owner.AsBigInteger())//智能合約所有者
                 {
                     return 2;
@@ -584,10 +471,6 @@ namespace DApp
             }
             return 0;
         }
-        //static int CheckRegister(byte[] callscript, byte[] p0, byte[] p1)
-        //{
-
-        //}
         public static object Main(string method, object[] args)
         {
             if (Runtime.Trigger == TriggerType.Verification)//取钱才会涉及这里
@@ -600,7 +483,7 @@ namespace DApp
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magic = "20180820";
+                string magic = "20180906";
                 //必须在入口函数取得callscript，调用脚本的函数，也会导致执行栈变化，再取callscript就晚了
                 var callscript = ExecutionEngine.CallingScriptHash;
 
@@ -619,10 +502,6 @@ namespace DApp
                 {
                     return getOwnerInfo((byte[])args[0]);
                 }
-                //if (method == "getNameInfo")
-                //{
-                //    return getNameInfo((byte[])args[0]);
-                //}
                 if (method == "nameHash")
                 {
                     var name = (string)args[0];
@@ -755,7 +634,6 @@ namespace DApp
                         byte[] _callscript = (byte[])args[0];
                         byte[] nnshash = (byte[])args[1];
                         var pinfo = getOwnerInfo(nnshash);
-                        //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
                         if (_callscript.AsBigInteger() == pinfo.register.AsBigInteger())
                         {
                             return register_SetSubdomainOwner((byte[])args[1], (string)args[2], (byte[])args[3], ((byte[])args[4]).AsBigInteger(), pinfo);
@@ -765,7 +643,6 @@ namespace DApp
                     {
                         byte[] nnshash = (byte[])args[0];
                         var pinfo = getOwnerInfo(nnshash);
-                        //var register = Storage.Get(Storage.CurrentContext, nnshash.Concat(new byte[] { 0x01 }));
                         if (callscript.AsBigInteger() == pinfo.register.AsBigInteger())
                         {
                             return register_SetSubdomainOwner((byte[])args[0], (string)args[1], (byte[])args[2], ((byte[])args[3]).AsBigInteger(), pinfo);

@@ -14,7 +14,7 @@ namespace DApp
         //    域名中心开发过程中地址一直在改变，造成调试不变，故设置一个跳板
         //    跳板用法，_setTarget(目标脚本hash)
         //    然后就把跳板当成域名中心脚本用即可
-        static readonly byte[] superAdmin = Helper.ToScriptHash("ALjSnMZidJqd18iQaoCgFun6iqWRm2cVtj");//初始管理員
+        static readonly byte[] superAdmin = Helper.ToScriptHash("AMNFdmGuBrU1iaMbYd63L1zucYMdU9hvQU");//初始管理員
         delegate object deleDyncall(string method, object[] arr);
 
         public static object Main(string method, object[] args)
@@ -29,7 +29,7 @@ namespace DApp
             }
             else if (Runtime.Trigger == TriggerType.Application)
             {
-                string magic = "20180820";
+                string magic = "20180906";
                 if (method == "_setTarget")
                 {
                     if (Runtime.CheckWitness(superAdmin))
