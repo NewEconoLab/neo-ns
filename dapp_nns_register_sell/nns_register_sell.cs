@@ -60,7 +60,7 @@ namespace DApp
 
         // cgas合约地址
         // cgas转账
-        [Appcall("9121e89e8a0849857262d67c8408601b5e8e0524")]
+        [Appcall("74f2dc36a68fdc4682034178eb2220729231db76")]
         static extern object cgasCall(string method, object[] arr);
 
         #region 域名转hash算法
@@ -661,7 +661,7 @@ namespace DApp
             trans[1] = who;
             trans[2] = count;
 
-            bool succ = (bool)cgasCall("transferAPP", trans);
+            bool succ = (bool)cgasCall("transfer", trans);
             if (succ)
             {
                 money -= count;
