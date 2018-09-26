@@ -33,10 +33,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nns_domainTransaction", "nn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domainTransaction", "dapp_nns_domainTransaction\dapp_nns_domainTransaction.csproj", "{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustForTest", "JustForTest\JustForTest.csproj", "{67CD3253-64EF-4462-822E-408856514F80}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JustForTest2", "JustForTest2\JustForTest2.csproj", "{1B932DAA-3946-4C71-88FB-5FE9AEDF099C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "adpp_nns_register_common", "adpp_nns_register_common\adpp_nns_register_common.csproj", "{404F0C55-D10B-486C-9543-C0E88770A369}"
 EndProject
 Global
@@ -73,14 +69,6 @@ Global
 		{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{67CD3253-64EF-4462-822E-408856514F80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{67CD3253-64EF-4462-822E-408856514F80}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{67CD3253-64EF-4462-822E-408856514F80}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{67CD3253-64EF-4462-822E-408856514F80}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1B932DAA-3946-4C71-88FB-5FE9AEDF099C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1B932DAA-3946-4C71-88FB-5FE9AEDF099C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1B932DAA-3946-4C71-88FB-5FE9AEDF099C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1B932DAA-3946-4C71-88FB-5FE9AEDF099C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Release|Any CPU.ActiveCfg = Release|Any CPU

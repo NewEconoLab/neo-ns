@@ -512,7 +512,7 @@ namespace DApp
                 object[] id = new object[1];
                 id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
-                cgasCall("transferAPP", _param);
+                cgasCall("transfer", _param);
                 onAssetManagement(auctionID, centralAccount, use);
             }
 
