@@ -13,13 +13,18 @@ namespace nns_credit
         string magic = "20181016";
 
         //跳板合约
-        [Appcall("77e193f1af44a61ed3613e6e3442a0fc809bb4b8")]
+        [Appcall("348387116c4a75e420663277d9c02049907128c7")]
         static extern object rootCall(string method, object[] arr);
 
-        //通知 认证域名
-        public delegate void deleAddrCreditChange(byte[] addr,NNScredit creditData);
-        [DisplayName("addrCreditChange")]
-        public static event deleAddrCreditChange onAddrCreditChange;
+        //通知 地址信誉信息注册
+        public delegate void deleAddrCreditRegistered(byte[] addr,NNScredit creditData);
+        [DisplayName("addrCreditRegistered")]
+        public static event deleAddrCreditRegistered onAddrCreditRegistered;
+
+        //通知 地址信誉信息注销
+        public delegate void deleAddrCreditDestroy(byte[] addr);
+        [DisplayName("addrCreditDestroy")]
+        public static event deleAddrCreditDestroy onAddrCreditDestroy;
 
         public class NNScredit
         {
@@ -65,8 +70,8 @@ namespace nns_credit
 
                 //存储
                 Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr), creditData.Serialize());
-                //通知修改
-                onAddrCreditChange(addr,creditData);
+                //通知注册
+                onAddrCreditRegistered(addr,creditData);
 
                 return new byte[] { 1 };
             }
@@ -84,11 +89,12 @@ namespace nns_credit
             var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
 
             if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL)) {
-                //清空
-                creditData = new NNScredit();
-                Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr), creditData.Serialize());
-                //通知清空
-                onAddrCreditChange(addr,creditData);
+                //操作注销
+                Storage.Delete(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr));
+                //通知注销
+                onAddrCreditDestroy(addr);
+                //返回查询失败
+                return new byte[] { 0 };
             }
 
             if (creditData.namehash.Length > 0)
@@ -113,13 +119,10 @@ namespace nns_credit
         {
             if (method == "authenticate")
                 return authenticate((byte[])args[0], (string)args[1], (string)args[2]);
-            else if (method == "getCreditDataForAddr")
+            else if (method == "getCreditData")
                 return getCreditDataForAddr((byte[])args[0], (byte[])args[1]);
             else
                 return new byte[] { 0 };
         }
-
-
-
     }
 }
