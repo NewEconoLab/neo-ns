@@ -638,6 +638,7 @@ namespace DApp
                 Storage.Put(Storage.CurrentContext, key, money);
                 //記錄這個txid處理過了,只處理一次
                 Storage.Put(Storage.CurrentContext, keytx, 1);
+                return true;
             }
             return false;
         }
