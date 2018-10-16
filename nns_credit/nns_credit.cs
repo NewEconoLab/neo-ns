@@ -17,14 +17,14 @@ namespace nns_credit
         static extern object rootCall(string method, object[] arr);
 
         //通知 认证域名
-        public delegate void deleAuthenticateNNS(NNScredit creditData);
-        [DisplayName("authenticateNNS")]
-        public static event deleAuthenticateNNS onAuthenticateNNS;
+        public delegate void deleAddrCreditChange(byte[] addr,NNScredit creditData);
+        [DisplayName("addrCreditChange")]
+        public static event deleAddrCreditChange onAddrCreditChange;
 
         public class NNScredit
         {
             public byte[] namehash;
-            public string fullName;
+            public string fullDomainName;
             public BigInteger TTL;
             //public byte[] witness;
         }
@@ -47,20 +47,26 @@ namespace nns_credit
 
         static byte[] authenticate(byte[] addr, string rootDomain, string subDomain)
         {
+            //只能操作自己的地址
+            if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
+
+            //使用域名中心计算namehash
             byte[] roothash = rootCall("nameHash", new object[] { rootDomain }) as byte[];
             byte[] namehash = rootCall("nameHashSub", new object[] { roothash,subDomain }) as byte[];
+
+            //使用域名中心获取域名信息
             OwnerInfo ownerInfo = getOwnerInfo(namehash);
             if (ownerInfo.owner == addr) {
                 NNScredit creditData = new NNScredit();
                 creditData.namehash = namehash;
-                creditData.fullName = subDomain + "." + rootDomain;
+                creditData.fullDomainName = subDomain + "." + rootDomain;
                 creditData.TTL = ownerInfo.TTL;
                 //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
                 //存储
                 Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr), creditData.Serialize());
-                //通知
-                onAuthenticateNNS(creditData);
+                //通知修改
+                onAddrCreditChange(addr,creditData);
 
                 return new byte[] { 1 };
             }
@@ -71,14 +77,31 @@ namespace nns_credit
             //读取
             NNScredit creditData = (NNScredit)Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr)).Deserialize();
 
+            //判断是否所有者变了或者域名是否过期了，变了或过期了则先清空信誉信息
+            byte[] creditNamehash = creditData.namehash;
+            OwnerInfo ownerInfo = getOwnerInfo(creditNamehash);
+            //获取最新块时间
+            var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+
+            if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL)) {
+                //清空
+                creditData = new NNScredit();
+                Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr), creditData.Serialize());
+                //通知清空
+                onAddrCreditChange(addr,creditData);
+            }
+
             if (creditData.namehash.Length > 0)
             {
+                //默认返回完整域名名称
                 if (flag == new byte[] { 0 })
-                    return creditData.fullName.AsByteArray();
-                else if (flag == new byte[] { 0 })
+                    return creditData.fullDomainName.AsByteArray();
+                else if (flag == new byte[] { 1 })
+                    return creditData.namehash;
+                else if (flag == new byte[] { 2 })
                     return creditData.TTL.AsByteArray();
                 else
-                    return creditData.namehash;
+                    return creditData.fullDomainName.AsByteArray();
             }
             else
             {
