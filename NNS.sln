@@ -35,6 +35,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dapp_nns_domainTransaction"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "adpp_nns_register_common", "adpp_nns_register_common\adpp_nns_register_common.csproj", "{404F0C55-D10B-486C-9543-C0E88770A369}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nns_credit", "nns_credit", "{37CFA99D-D8A9-44E1-BBBF-68C389F119BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nns_credit", "nns_credit\nns_credit.csproj", "{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +77,10 @@ Global
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{404F0C55-D10B-486C-9543-C0E88770A369}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -86,6 +94,7 @@ Global
 		{98C883F2-5ED6-4660-AF0B-8ECC8642EEA0} = {50CBC326-02AE-4561-9892-A14398A8C582}
 		{70D0E6D8-1DA4-42B3-95AB-F47AA0596FD6} = {124BA1C5-DBCB-4A85-9BCA-A4943A360F07}
 		{404F0C55-D10B-486C-9543-C0E88770A369} = {2D75EEDA-1D67-40E0-AF53-CFAB996EE392}
+		{EEE4C523-4A06-429B-93B7-8D6B1C98D4AE} = {37CFA99D-D8A9-44E1-BBBF-68C389F119BD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DA753102-3A6A-40F2-B3CC-440DE8A9A356}
