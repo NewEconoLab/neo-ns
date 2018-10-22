@@ -50,14 +50,15 @@ namespace nns_credit
             return info;
         }
 
-        static byte[] authenticate(byte[] addr, string rootDomain, string subDomain)
+        static byte[] authenticate(byte[] addr, string[] domainArray)
         {
             //只能操作自己的地址
             if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
 
             //使用域名中心计算namehash
-            byte[] roothash = rootCall("nameHash", new object[] { rootDomain }) as byte[];
-            byte[] namehash = rootCall("nameHashSub", new object[] { roothash,subDomain }) as byte[];
+            //byte[] roothash = rootCall("nameHash", new object[] { rootDomain }) as byte[];
+            //byte[] namehash = rootCall("nameHashSub", new object[] { roothash,subDomain }) as byte[];
+            byte[] namehash = rootCall("nameHashArray", new object[] { domainArray }) as byte[];
 
             //使用域名中心获取域名信息
             OwnerInfo ownerInfo = getOwnerInfo(namehash);
@@ -66,7 +67,14 @@ namespace nns_credit
             if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL)) {
                 NNScredit creditData = new NNScredit();
                 creditData.namehash = namehash;
-                creditData.fullDomainName = subDomain + "." + rootDomain;
+                //根域名
+                string fullDomainStr = domainArray[0];
+                //其它逐级拼接
+                for (var i = 1; i < domainArray.Length; i++)
+                {
+                    fullDomainStr = domainArray[i] + "." + fullDomainStr;
+                }
+                //creditData.fullDomainName = subDomain + "." + rootDomain;
                 creditData.TTL = ownerInfo.TTL;
                 //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
@@ -133,7 +141,7 @@ namespace nns_credit
         public static byte[] Main(string method, object[] args)
         {
             if (method == "authenticate")
-                return authenticate((byte[])args[0], (string)args[1], (string)args[2]);
+                return authenticate((byte[])args[0], (string[])args[1]);
             else if (method == "revoke")
                 return revoke((byte[])args[0]);
             else if (method == "getCreditInfo")
