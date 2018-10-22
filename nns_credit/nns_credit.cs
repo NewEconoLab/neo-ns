@@ -22,9 +22,9 @@ namespace nns_credit
         public static event deleAddrCreditRegistered onAddrCreditRegistered;
 
         //通知 地址信誉信息注销
-        public delegate void deleAddrCreditDestroy(byte[] addr);
-        [DisplayName("addrCreditDestroy")]
-        public static event deleAddrCreditDestroy onAddrCreditDestroy;
+        public delegate void deleAddrCreditRevoke(byte[] addr);
+        [DisplayName("addrCreditRevoke")]
+        public static event deleAddrCreditRevoke onAddrCreditRevoke;
 
         public class NNScredit
         {
@@ -61,7 +61,9 @@ namespace nns_credit
 
             //使用域名中心获取域名信息
             OwnerInfo ownerInfo = getOwnerInfo(namehash);
-            if (ownerInfo.owner == addr) {
+            //获取最新块时间
+            var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL)) {
                 NNScredit creditData = new NNScredit();
                 creditData.namehash = namehash;
                 creditData.fullDomainName = subDomain + "." + rootDomain;
@@ -78,7 +80,20 @@ namespace nns_credit
             return new byte[] { 0 };
         }
 
-        static byte[] getCreditDataForAddr(byte[] addr,byte[] flag) {
+        static byte[] revoke(byte[] addr)
+        {
+            //只能操作自己的地址
+            if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
+
+            //操作注销
+            Storage.Delete(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr));
+            //通知注销
+            onAddrCreditRevoke(addr);
+
+            return new byte[] { 1 };
+        }
+
+        static byte[] getCreditInfoForAddr(byte[] addr,byte[] flag) {
             //读取
             NNScredit creditData = (NNScredit)Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr)).Deserialize();
 
@@ -92,7 +107,7 @@ namespace nns_credit
                 //操作注销
                 Storage.Delete(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr));
                 //通知注销
-                onAddrCreditDestroy(addr);
+                onAddrCreditRevoke(addr);
                 //返回查询失败
                 return new byte[] { 0 };
             }
@@ -119,8 +134,11 @@ namespace nns_credit
         {
             if (method == "authenticate")
                 return authenticate((byte[])args[0], (string)args[1], (string)args[2]);
-            else if (method == "getCreditData")
-                return getCreditDataForAddr((byte[])args[0], (byte[])args[1]);
+            else if (method == "revoke")
+                return revoke((byte[])args[0]);
+            else if (method == "getCreditInfo")
+                return getCreditInfoForAddr((byte[])args[0], (byte[])args[1]);
+            //主动注销方法，验证所有者
             else
                 return new byte[] { 0 };
         }
