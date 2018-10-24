@@ -72,7 +72,7 @@ namespace nns_credit
                 //其它逐级拼接
                 for (var i = 1; i < domainArray.Length; i++)
                 {
-                    fullDomainStr = domainArray[i] + "." + fullDomainStr;
+                    fullDomainStr = string.Concat(domainArray[i], string.Concat(".",fullDomainStr));
                 }
                 creditData.fullDomainName = fullDomainStr;
                 creditData.TTL = ownerInfo.TTL;
