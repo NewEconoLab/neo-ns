@@ -74,7 +74,7 @@ namespace nns_credit
                 {
                     fullDomainStr = domainArray[i] + "." + fullDomainStr;
                 }
-                //creditData.fullDomainName = subDomain + "." + rootDomain;
+                creditData.fullDomainName = fullDomainStr;
                 creditData.TTL = ownerInfo.TTL;
                 //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
@@ -101,7 +101,7 @@ namespace nns_credit
             return new byte[] { 1 };
         }
 
-        static byte[] getCreditInfoForAddr(byte[] addr,byte[] flag) {
+        static byte[] getCreditInfo(byte[] addr) {
             //读取
             NNScredit creditData = (NNScredit)Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr)).Deserialize();
 
@@ -122,15 +122,15 @@ namespace nns_credit
 
             if (creditData.namehash.Length > 0)
             {
-                //默认返回完整域名名称
-                if (flag == new byte[] { 0 })
-                    return creditData.fullDomainName.AsByteArray();
-                else if (flag == new byte[] { 1 })
-                    return creditData.namehash;
-                else if (flag == new byte[] { 2 })
-                    return creditData.TTL.AsByteArray();
-                else
-                    return creditData.fullDomainName.AsByteArray();
+                ////默认返回完整域名名称
+                //if (flag == new byte[] { 0 })
+                //    return creditData.fullDomainName.AsByteArray();
+                //else if (flag == new byte[] { 1 })
+                //    return creditData.namehash;
+                //else if (flag == new byte[] { 2 })
+                //    return creditData.TTL.AsByteArray();
+                //else
+                return creditData.Serialize();
             }
             else
             {
@@ -145,8 +145,7 @@ namespace nns_credit
             else if (method == "revoke")
                 return revoke((byte[])args[0]);
             else if (method == "getCreditInfo")
-                return getCreditInfoForAddr((byte[])args[0], (byte[])args[1]);
-            //主动注销方法，验证所有者
+                return getCreditInfo((byte[])args[0]);
             else
                 return new byte[] { 0 };
         }
