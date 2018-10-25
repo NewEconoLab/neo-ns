@@ -36,9 +36,6 @@ namespace nns_credit
             //public byte[] witness;
         }
 
-        //使用StorageMap，推荐的存储区使用方式
-        static StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
-
         //域名中心的所有者信息结构
         public class OwnerInfo
         {
@@ -63,6 +60,9 @@ namespace nns_credit
         {
             //只能操作自己的地址
             if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
+
+            //使用StorageMap，推荐的存储区使用方式
+            StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
             //使用域名中心计算namehash
             //byte[] roothash = rootCall("nameHash", new object[] { rootDomain }) as byte[];
@@ -103,6 +103,9 @@ namespace nns_credit
             //只能操作自己的地址
             if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
 
+            //使用StorageMap，推荐的存储区使用方式
+            StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
+
             //操作注销
             addrCreditMap.Delete(addr);
             //通知注销
@@ -114,6 +117,9 @@ namespace nns_credit
         static NNScredit getCreditInfo(byte[] addr) {
             //addr不满足地址正常长度，返回失败
             if (addr.Length != 20) return new NNScredit();
+
+            //使用StorageMap，推荐的存储区使用方式
+            StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
             //读取并反序列化为类
             NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
