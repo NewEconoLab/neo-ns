@@ -111,9 +111,9 @@ namespace nns_credit
             return new byte[] { 1 };
         }
 
-        static byte[] getCreditInfo(byte[] addr) {
+        static NNScredit getCreditInfo(byte[] addr) {
             //addr不满足地址正常长度，返回失败
-            if (addr.Length != 20) return new byte[] { 0 };
+            if (addr.Length != 20) return new NNScredit();
 
             //读取并反序列化为类
             NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
@@ -130,7 +130,7 @@ namespace nns_credit
                 //通知注销
                 onAddrCreditRevoke(addr);
                 //返回查询失败
-                return new byte[] { 0 };
+                return new NNScredit();
             }
             
             //判断addr是否做过NNS登记
@@ -144,15 +144,15 @@ namespace nns_credit
                 //else if (flag == new byte[] { 2 })
                 //    return creditData.TTL.AsByteArray();
                 //else
-                return creditData.Serialize();
+                return creditData;
             }
             else
             {
-                return new byte[] { 0 };
+                return new NNScredit();
             }
         }
 
-        public static byte[] Main(string method, object[] args)
+        public static object Main(string method, object[] args)
         {
             if (method == "authenticate")
                 return authenticate((byte[])args[0], (string[])args[1]);
