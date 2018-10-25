@@ -33,6 +33,10 @@ namespace nns_credit
             public BigInteger TTL;
             //public byte[] witness;
         }
+
+        //使用StorageMap，推荐的存储区使用方式
+        static StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
+
         public class OwnerInfo
         {
             public byte[] owner;//如果长度=0 表示没有初始化
@@ -79,7 +83,7 @@ namespace nns_credit
                 //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
                 //存储
-                Storage.Put(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr), creditData.Serialize());
+                addrCreditMap.Put(addr, creditData.Serialize());
                 //通知注册
                 onAddrCreditRegistered(addr,creditData);
 
@@ -94,7 +98,7 @@ namespace nns_credit
             if (!Runtime.CheckWitness(addr)) return new byte[] { 0 };
 
             //操作注销
-            Storage.Delete(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr));
+            addrCreditMap.Delete(addr);
             //通知注销
             onAddrCreditRevoke(addr);
 
@@ -103,7 +107,7 @@ namespace nns_credit
 
         static byte[] getCreditInfo(byte[] addr) {
             //读取
-            NNScredit creditData = (NNScredit)Storage.Get(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr)).Deserialize();
+            NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
 
             //判断是否所有者变了或者域名是否过期了，变了或过期了则先清空信誉信息
             byte[] creditNamehash = creditData.namehash;
@@ -113,13 +117,13 @@ namespace nns_credit
 
             if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL)) {
                 //操作注销
-                Storage.Delete(Storage.CurrentContext, new byte[] { 0x01 }.Concat(addr));
+                addrCreditMap.Delete(addr);
                 //通知注销
                 onAddrCreditRevoke(addr);
                 //返回查询失败
                 return new byte[] { 0 };
             }
-
+            
             if (creditData.namehash.Length > 0)
             {
                 ////默认返回完整域名名称
