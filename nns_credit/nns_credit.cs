@@ -118,40 +118,57 @@ namespace nns_credit
             //使用StorageMap，推荐的存储区使用方式
             StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
-            //读取并反序列化为类
-            NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
+            byte[] creditData = addrCreditMap.Get(addr);
+
+            //如果数据不存在 形同成功删除
+            if (creditData.Length == 0)
+                return new byte[] { 1 };
+
+            //到了这里肯定有数据，那就删除加抛出通知
+            //操作注销
+            addrCreditMap.Delete(addr);
+            //通知注销
+            onAddrCreditRevoke(addr);
+
+            return new byte[] { 1 };
 
             //判断是否有数据,有数据才执行
-            if (creditData.namehash.Length > 0)
-            {
-                //操作注销
-                addrCreditMap.Delete(addr);
-                //通知注销
-                onAddrCreditRevoke(addr);
-
-                return new byte[] { 1 };
-            }
-            else
-            {
-                return new byte[] { 0 };
-            }       
+            //if (nnsCredit.namehash.Length > 0)
+            //{
+            //
+            //}
+            //else
+            //{
+            //    return new byte[] { 0 };
+            //}       
         }
 
         static NNScredit getCreditInfo(byte[] addr) {
             //addr不满足地址正常长度，返回失败
-            if (addr.Length != 20) return new NNScredit();
+            //if (addr.Length != 20) return new NNScredit();
 
             //使用StorageMap，推荐的存储区使用方式
             StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
+            byte[] creditData = addrCreditMap.Get(addr);
+
+            NNScredit nnsCredit = new NNScredit();
+
+            //如果存储区没有这个地址
+            if (creditData.Length == 0)
+            {
+                nnsCredit.namehash = new byte[0];
+                nnsCredit.fullDomainName = "";
+                nnsCredit.TTL = 0;
+                return nnsCredit;
+            }
 
             //读取并反序列化为类
-            NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
-
+            nnsCredit = (NNScredit)creditData.Deserialize();
             //判断是否有数据
-            if (creditData.namehash.Length > 0)
+            if (nnsCredit.namehash.Length > 0)//这个判断可能有点多余
             {
                 //获取域名信息
-                byte[] creditNamehash = creditData.namehash;
+                byte[] creditNamehash = nnsCredit.namehash;
                 OwnerInfo ownerInfo = getOwnerInfo(creditNamehash);
                 //获取最新块时间
                 var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
@@ -167,17 +184,23 @@ namespace nns_credit
                     //onAddrCreditRevoke(addr);
 
                     //返回空类
-                    return new NNScredit();
+                    nnsCredit.namehash = new byte[0];
+                    nnsCredit.fullDomainName = "";
+                    nnsCredit.TTL = 0;
+                    return nnsCredit;
                 }
                 else
                 {
-                    return creditData;
+                    return nnsCredit;
                 }
             }
             else
             {
                 //没数据返回空类
-                return new NNScredit();
+                nnsCredit.namehash = new byte[0];
+                nnsCredit.fullDomainName = "";
+                nnsCredit.TTL = 0;
+                return nnsCredit;
             }
             
             ////判断addr是否做过NNS登记
@@ -203,12 +226,13 @@ namespace nns_credit
         {
             if (method == "authenticate")
                 return authenticate((byte[])args[0], (string[])args[1]);
-            else if (method == "revoke")
+            if (method == "revoke")
                 return revoke((byte[])args[0]);
-            else if (method == "getCreditInfo")
+
+            if (method == "getCreditInfo")
                 return getCreditInfo((byte[])args[0]);
-            else
-                return new byte[] { 0 };
+
+            return new byte[] { 0 };
         }
     }
 }
