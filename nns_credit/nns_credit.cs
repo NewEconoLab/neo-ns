@@ -10,9 +10,10 @@ namespace nns_credit
 {
     public class nns_credit : SmartContract
     {
-        string magic = "20181016";
+        //魔法数字
+        string magic = "20181025";
 
-        //跳板合约
+        //域名中心（跳板）
         [Appcall("348387116c4a75e420663277d9c02049907128c7")]
         static extern object rootCall(string method, object[] arr);
 
@@ -26,6 +27,7 @@ namespace nns_credit
         [DisplayName("addrCreditRevoke")]
         public static event deleAddrCreditRevoke onAddrCreditRevoke;
 
+        //域名信誉数据结构
         public class NNScredit
         {
             public byte[] namehash;
@@ -37,6 +39,7 @@ namespace nns_credit
         //使用StorageMap，推荐的存储区使用方式
         static StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
+        //域名中心的所有者信息结构
         public class OwnerInfo
         {
             public byte[] owner;//如果长度=0 表示没有初始化
@@ -54,6 +57,8 @@ namespace nns_credit
             return info;
         }
 
+        //登记认证
+        //必须拥有NNS的所有权才能成功
         static byte[] authenticate(byte[] addr, string[] domainArray)
         {
             //只能操作自己的地址
@@ -68,6 +73,7 @@ namespace nns_credit
             OwnerInfo ownerInfo = getOwnerInfo(namehash);
             //获取最新块时间
             var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            //如果addr是所有者，而且没有过期，才能登记
             if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL)) {
                 NNScredit creditData = new NNScredit();
                 creditData.namehash = namehash;
@@ -106,7 +112,10 @@ namespace nns_credit
         }
 
         static byte[] getCreditInfo(byte[] addr) {
-            //读取
+            //addr不满足地址正常长度，返回失败
+            if (addr.Length != 20) return new byte[] { 0 };
+
+            //读取并反序列化为类
             NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
 
             //判断是否所有者变了或者域名是否过期了，变了或过期了则先清空信誉信息
@@ -124,6 +133,7 @@ namespace nns_credit
                 return new byte[] { 0 };
             }
             
+            //判断addr是否做过NNS登记
             if (creditData.namehash.Length > 0)
             {
                 ////默认返回完整域名名称
