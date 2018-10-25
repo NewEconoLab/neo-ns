@@ -71,31 +71,43 @@ namespace nns_credit
 
             //使用域名中心获取域名信息
             OwnerInfo ownerInfo = getOwnerInfo(namehash);
-            //获取最新块时间
-            var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            //如果addr是所有者，而且没有过期，才能登记
-            if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL)) {
-                NNScredit creditData = new NNScredit();
-                creditData.namehash = namehash;
-                //根域名
-                string fullDomainStr = domainArray[0];
-                //其它逐级拼接
-                for (var i = 1; i < domainArray.Length; i++)
+            //判断NNS有没有初始化，初始化了才进行
+            if (ownerInfo.owner.Length > 0)
+            {
+                //获取最新块时间
+                var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+                //如果addr是所有者，而且没有过期，才能登记
+                if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL))
                 {
-                    fullDomainStr = string.Concat(domainArray[i], string.Concat(".",fullDomainStr));
+                    NNScredit creditData = new NNScredit();
+                    creditData.namehash = namehash;
+                    //根域名
+                    string fullDomainStr = domainArray[0];
+                    //其它逐级拼接
+                    for (var i = 1; i < domainArray.Length; i++)
+                    {
+                        fullDomainStr = string.Concat(domainArray[i], string.Concat(".", fullDomainStr));
+                    }
+                    creditData.fullDomainName = fullDomainStr;
+                    creditData.TTL = ownerInfo.TTL;
+                    //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
+
+                    //存储
+                    addrCreditMap.Put(addr, creditData.Serialize());
+                    //通知注册
+                    onAddrCreditRegistered(addr, creditData);
+
+                    return new byte[] { 1 };
                 }
-                creditData.fullDomainName = fullDomainStr;
-                creditData.TTL = ownerInfo.TTL;
-                //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
-
-                //存储
-                addrCreditMap.Put(addr, creditData.Serialize());
-                //通知注册
-                onAddrCreditRegistered(addr,creditData);
-
-                return new byte[] { 1 };
+                else
+                {
+                    return new byte[] { 0 };
+                }
             }
-            return new byte[] { 0 };
+            else
+            {
+                return new byte[] { 0 };
+            }          
         }
 
         static byte[] revoke(byte[] addr)
@@ -106,12 +118,23 @@ namespace nns_credit
             //使用StorageMap，推荐的存储区使用方式
             StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
-            //操作注销
-            addrCreditMap.Delete(addr);
-            //通知注销
-            onAddrCreditRevoke(addr);
+            //读取并反序列化为类
+            NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
 
-            return new byte[] { 1 };
+            //判断是否有数据,有数据才执行
+            if (creditData.namehash.Length > 0)
+            {
+                //操作注销
+                addrCreditMap.Delete(addr);
+                //通知注销
+                onAddrCreditRevoke(addr);
+
+                return new byte[] { 1 };
+            }
+            else
+            {
+                return new byte[] { 0 };
+            }       
         }
 
         static NNScredit getCreditInfo(byte[] addr) {
@@ -124,38 +147,56 @@ namespace nns_credit
             //读取并反序列化为类
             NNScredit creditData = (NNScredit)addrCreditMap.Get(addr).Deserialize();
 
-            //判断是否所有者变了或者域名是否过期了，变了或过期了则先清空信誉信息
-            byte[] creditNamehash = creditData.namehash;
-            OwnerInfo ownerInfo = getOwnerInfo(creditNamehash);
-            //获取最新块时间
-            var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-
-            if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL)) {
-                //操作注销
-                addrCreditMap.Delete(addr);
-                //通知注销
-                onAddrCreditRevoke(addr);
-                //返回查询失败
-                return new NNScredit();
-            }
-            
-            //判断addr是否做过NNS登记
+            //判断是否有数据
             if (creditData.namehash.Length > 0)
             {
-                ////默认返回完整域名名称
-                //if (flag == new byte[] { 0 })
-                //    return creditData.fullDomainName.AsByteArray();
-                //else if (flag == new byte[] { 1 })
-                //    return creditData.namehash;
-                //else if (flag == new byte[] { 2 })
-                //    return creditData.TTL.AsByteArray();
-                //else
-                return creditData;
+                //获取域名信息
+                byte[] creditNamehash = creditData.namehash;
+                OwnerInfo ownerInfo = getOwnerInfo(creditNamehash);
+                //获取最新块时间
+                var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+
+                //如果NNS所有者变了，或者NNS过期了则不返回数据（即使有）
+                if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL))
+                {
+
+                    //为了能够不用发送交易也能正常运行，这里不能做删除操作（修改性操作）
+                    ////操作注销
+                    //addrCreditMap.Delete(addr);
+                    ////通知注销
+                    //onAddrCreditRevoke(addr);
+
+                    //返回空类
+                    return new NNScredit();
+                }
+                else
+                {
+                    return creditData;
+                }
             }
             else
             {
+                //没数据返回空类
                 return new NNScredit();
             }
+            
+            ////判断addr是否做过NNS登记
+            //if (creditData.namehash.Length > 0)
+            //{
+            //    ////默认返回完整域名名称
+            //    //if (flag == new byte[] { 0 })
+            //    //    return creditData.fullDomainName.AsByteArray();
+            //    //else if (flag == new byte[] { 1 })
+            //    //    return creditData.namehash;
+            //    //else if (flag == new byte[] { 2 })
+            //    //    return creditData.TTL.AsByteArray();
+            //    //else
+            //    return creditData;
+            //}
+            //else
+            //{
+            //    return new NNScredit();
+            //}
         }
 
         public static object Main(string method, object[] args)
