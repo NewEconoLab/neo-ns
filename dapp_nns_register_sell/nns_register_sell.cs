@@ -23,9 +23,21 @@ namespace DApp
         [DisplayName("changeAuctionState")]
         public static event deleChangeAuctionState onChangeAuctionState;
 
-        public delegate void deleAssetManagement(byte[] from, byte[] to, BigInteger value);
-        [DisplayName("assetManagement")]
-        public static event deleAssetManagement onAssetManagement;
+        public delegate void deleRaise(byte[] auctionID, byte[] who, BigInteger value);
+        [DisplayName("raise")]
+        public static event deleRaise onRaise;
+
+        public delegate void deleBidSettlement(byte[] auctionID, byte[] who, BigInteger value);
+        [DisplayName("bidSettlement")]
+        public static event deleBidSettlement onBidSettlement;
+
+        public delegate void deleSetMoneyIn( byte[] who, BigInteger value, byte[] txid);
+        [DisplayName("setMoneyIn")]
+        public static event deleSetMoneyIn onSetMoneyIn;
+
+        public delegate void deleGetMoneyBack(byte[] who, BigInteger value);
+        [DisplayName("getMoneyBack")]
+        public static event deleGetMoneyBack onGetMoneyBack;
 
         public delegate void deleCollectDomain(byte[] who,byte[] auctionId,byte[] parentHash,string domain);
         [DisplayName("collectDomain")]
@@ -40,17 +52,17 @@ namespace DApp
         public static event deleRaiseEndsAuction onRaiseEndsAuction;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
-        //const int blockhour = 10;//加速版,每10块检测一次随机是否要结束
-        //const int secondday = 5 * 60;//加速版,300秒当一天
+        const int secondday = 5 * 60;//加速版,300秒当一天
 
-        const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
-        const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
+        //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
+        //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
-        const int secondmonth = secondday * 30 * 3;//90天可以续约
-        //starttime + secondday*2  为拍卖阶段1
-        //~starttime + secondday*3  为拍卖阶段2
-        //~strttime +secondy*5
-
+        const int secondThreemonth = secondday * 30 * 3;//90天可以续约
+                                                   //starttime + secondday*2  为拍卖阶段1
+                                                   //~starttime + secondday*3  为拍卖阶段2
+                                                   //~strttime +secondy*5
+        //初始管理員
+        static readonly byte[] superAdmin = Helper.ToScriptHash("AMNFdmGuBrU1iaMbYd63L1zucYMdU9hvQU");
         //系统费暂存账户
         static readonly byte[] centralAccount = Helper.ToScriptHash("ASBZYHHoTxmSFCHZbgYx3HYx3aMKvMhWfw");
 
@@ -129,6 +141,7 @@ namespace DApp
             }
         }
 
+        /*
         public enum SellingStep
         {
             NotSelling,
@@ -137,16 +150,17 @@ namespace DApp
             SellingStepRan,//随机阶段
             EndSelling,//结束销售
         }
+        */
 
         //dict<domainhash,lastsellid> //查看域名最终的拍卖id
         public class AuctionState
         {
             public byte[] id; //拍卖id,就是拍卖生成的auctionid
+            public byte[] auctionStarter;//域名开拍的人
 
             public byte[] parenthash;//拍卖内容
             public string domain;//拍卖内容
             public BigInteger domainTTL;//域名的TTL,用这个信息来判断域名是否发生了变化
-
             public BigInteger startBlockSelling;//开始销售块
             //public int StartTime 算出
             //step2time //算出
@@ -157,7 +171,6 @@ namespace DApp
             //这个变量移除,改为运算更少的随机块决定方式
             //从这个块开始,往后的每一个块出价都有一定几率直接结束
             public BigInteger endBlock;//结束块
-
             public BigInteger maxPrice;//最高出价
             public byte[] maxBuyer;//最大出价者
             public BigInteger lastBlock;//最后出价块
@@ -167,58 +180,12 @@ namespace DApp
         {
             var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(auctionID));
 
-            AuctionState state = new AuctionState();
-            state.id = auctionID;
-            int seek = 0;
-            int len = 0;
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.parenthash = data.Range(seek, len);
-            seek += len;
+            if (data.Length <= 0)
+                return new AuctionState();
 
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.domain = data.Range(seek, len).AsString();
-            seek += len;
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.domainTTL = data.Range(seek, len).AsBigInteger();
-            seek += len;
-
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.startBlockSelling = data.Range(seek, len).AsBigInteger();
-            seek += len;
-
-            //len = (int)data.Range(seek, 2).AsBigInteger();
-            //seek += 2;
-            //state.startBlockRan = data.Range(seek, len).AsBigInteger();
-            //seek += len;
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.endBlock = data.Range(seek, len).AsBigInteger();
-            seek += len;
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.maxPrice = data.Range(seek, len).AsBigInteger();
-            seek += len;
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.maxBuyer = data.Range(seek, len);
-            seek += len;
-
-            len = (int)data.Range(seek, 2).AsBigInteger();
-            seek += 2;
-            state.lastBlock = data.Range(seek, len).AsBigInteger();
-            seek += len;
-
-            return state;
+            return Helper.Deserialize(data) as AuctionState;
         }
+
         public static AuctionState getAuctionStateByFullhash(byte[] fullhash)
         {
             //需要保存每一笔拍卖记录,因为过去拍卖者的资金都要锁定在这里
@@ -243,46 +210,14 @@ namespace DApp
 
             var key = new byte[] { 0x02 }.Concat(state.id);
 
-            var doublezero = new byte[] { 0, 0 };
-
-            var data = state.parenthash;
-            var datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            var value = datalen.Concat(data);
-
-            data = state.domain.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.domainTTL.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.startBlockSelling.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.endBlock.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.maxPrice.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.maxBuyer;
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
-            data = state.lastBlock.AsByteArray();
-            datalen = ((BigInteger)data.Length).AsByteArray().Concat(doublezero).Range(0, 2);
-            value = value.Concat(datalen).Concat(data);
-
             onChangeAuctionState(state);
-            Storage.Put(Storage.CurrentContext, key, value);
+            Storage.Put(Storage.CurrentContext, key, Helper.Serialize(state));
         }
 
         public static bool startAuction(byte[] who,byte[] hash, string domainname)
         {
+            if (Runtime.CheckWitness(who) == false)
+                return false;
             //判断域名的合法性
             //域名的有效性  只能是a~z 0~9 2~32长
             if (domainname.Length < 2 || domainname.Length > 32)
@@ -308,18 +243,17 @@ namespace DApp
             {
                 return false;
             }
-
             //再看看有没有在拍卖
             var selling = getAuctionStateByFullhash(fullhash);
+            var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             if (selling.startBlockSelling > 0)//已经在拍卖中了
             {
-                if (testEnd(selling) == false)//拍卖未结束不准
+                if (IsAuctionEnd(selling, starttime, nowtime) == false)//拍卖未结束不准
                     return false;
 
                 if (selling.maxBuyer.Length > 0)//未流拍的拍卖,一年内不得再拍
                 {
-                    var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-                    var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
                     if ((nowtime - starttime) < secondyear)
                     {
                         return false;
@@ -329,6 +263,7 @@ namespace DApp
 
             AuctionState sell = new AuctionState();
             sell.parenthash = hash;
+            sell.auctionStarter = who;
             sell.domain = domainname;
             sell.domainTTL = info.TTL;
 
@@ -360,6 +295,14 @@ namespace DApp
         /// <returns>加价成功？</returns>
         public static bool raise(byte[] who, byte[] auctionID, BigInteger value)
         {
+            if (Runtime.CheckWitness(who) == false)
+                return false;
+            if (value <= 0)
+                return false;
+            //合约限制最小加价为0.1 并且小数点后面不能超过一位
+            if (value < 10000000 || value % 10000000 > 0)
+                return false;
+
             var money = balanceOf(who);
             if (money < value)//钱不够
                 return false;
@@ -374,6 +317,19 @@ namespace DApp
             var step2time = starttime + secondday * 2;
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
+
+            //判断最大出价人有没有变动
+            bool isMaxBuyerChange = false;
+            //计算加价人已经累计的出价
+            var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
+            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
+            moneyfordomain += value;
+            if (moneyfordomain > selling.maxPrice)
+            {
+                // 高于最高出价了,判断最高出价人有没有变动
+                isMaxBuyerChange = selling.maxBuyer != who;
+            }
+
             if (nowtime > endtime)//太久了,不能出价
             {
                 return false;
@@ -387,35 +343,61 @@ namespace DApp
             }
             else //随机期怎么办,有可能这里就直接被结束了
             {
-                var b = testEnd(selling,who);//测试能不能结束
-                if (b)
+                //没结束,验证加价的金额有没有超过最高出价的10% 因为最小出价是0.1 所以小于2的最高价就不限制了
+                if (selling.maxPrice >= 200000000 && (value/10000000) < (selling.maxPrice / 100000000))
                     return false;
-                //没结束就可以出价
+                //如果最高出价人变化了，触发随机结束的逻辑
+                if (isMaxBuyerChange)
+                {
+                    if (RandomEnd(selling, starttime, who))
+                        return false;
+                }
             }
 
-
+            //上面都没有真正的钱的更改，下面才会将钱变动
             //转移资金
-            money -= value;
-            var key = new byte[] { 0x11 }.Concat(who);
-            Storage.Put(Storage.CurrentContext, key, money);
-
-            var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
-            var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-            moneyfordomain += value;
-            Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
-            onAssetManagement(who, auctionID, value);
             if (moneyfordomain > selling.maxPrice)
             {
                 // 高于最高出价了,更新我为最高出价者
                 selling.maxPrice = moneyfordomain;
                 selling.maxBuyer = who;
             }
+            money -= value;
+            var key = new byte[] { 0x11 }.Concat(who);
+            Storage.Put(Storage.CurrentContext, key, money);
+
+            Storage.Put(Storage.CurrentContext, pricekey, moneyfordomain);
+            onRaise(auctionID,who,value);
+
             selling.lastBlock = Blockchain.GetHeight();
             saveAuctionState(selling);
             return true;
         }
 
-        private static bool testEnd(AuctionState state,byte[] who = null)
+
+        public static bool RandomEnd(AuctionState state, uint starttime, byte[] who = null)
+        {
+
+            var step2time = starttime + secondday * 2;
+            var steprantime = starttime + secondday * 3;
+            var endtime = starttime + secondday * 5;
+
+            var nowheader = Blockchain.GetHeader(Blockchain.GetHeight());
+            //得到当前块在整个随机期所处的位置
+            var persenttime = (nowheader.Timestamp - steprantime) * 1000 / (endtime - steprantime);
+            //当处于10%位置的时候,只有10%的几率结束
+            if ((nowheader.ConsensusData % 1000) < persenttime)//随机数小于块位置
+            {
+                state.endBlock = nowheader.Index; ;//突然死亡,无法出价了
+                saveAuctionState(state);
+                onRaiseEndsAuction(who, state.id);
+                return true;
+            }
+            return false;
+        }
+
+        //判断域名拍卖有没有结束
+        private static bool IsAuctionEnd(AuctionState state, uint starttime,uint nowtime, byte[] who = null)
         {
             if (state.startBlockSelling == 0)//就没开始过
                 return false;
@@ -423,8 +405,8 @@ namespace DApp
                 return true;
 
 
-            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            var starttime = Blockchain.GetHeader((uint)state.startBlockSelling).Timestamp;
+            //var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            //var starttime = Blockchain.GetHeader((uint)state.startBlockSelling).Timestamp;
             var step2time = starttime + secondday * 2;
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
@@ -447,18 +429,8 @@ namespace DApp
                 return true;
             }
 
-            //随机期
-            var nowheader = Blockchain.GetHeader(Blockchain.GetHeight());
-            //得到当前块在整个随机期所处的位置
-            var persenttime = (nowheader.Timestamp - steprantime) * 1000 / (endtime - steprantime);
-            //当处于10%位置的时候,只有10%的几率结束
-            if ((nowheader.ConsensusData % 1000) < persenttime)//随机数小于块位置
-            {
-                state.endBlock = nowheader.Index; ;//突然死亡,无法出价了
-                saveAuctionState(state);
-                onRaiseEndsAuction(who, state.id);
-                return true;
-            }
+            //随机期 判断此期间有没有结束用endblock来判断  这个上面已经判断过了
+
 
             //走到这里都没死,那就允许你出价,这里是随机期
             return false;
@@ -472,8 +444,12 @@ namespace DApp
         /// <returns></returns>
         public static bool bidSettlement(byte[] who, byte[] auctionID)
         {
+            if (who.Length != 20)
+                return false;
             var selling = getAuctionStateByAuctionID(auctionID);
-            bool b = testEnd(selling);
+            var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+            var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+            bool b = IsAuctionEnd(selling, starttime, nowtime);
 
             if (b == false)
                 return false;
@@ -482,10 +458,19 @@ namespace DApp
             var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             if (moneyfordomain == 0)
-                return true;
+                return false;
             Storage.Delete(Storage.CurrentContext, pricekey);
 
-            if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
+
+            if (selling.auctionStarter.AsBigInteger() == who.AsBigInteger() && selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
+            {//域名开拍者全退
+                var money = balanceOf(who);
+                use = 0;
+                money += (moneyfordomain - use);
+                var key = new byte[] { 0x11 }.Concat(who);
+                Storage.Put(Storage.CurrentContext, key, money);
+            }
+            else if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
             {
                 var money = balanceOf(who);
 
@@ -497,10 +482,9 @@ namespace DApp
             }
             else
             {
-
                 use = moneyfordomain;
             }
-            onAssetManagement(auctionID, who,(moneyfordomain - use));
+            onBidSettlement(auctionID, who,(moneyfordomain - use));
             if (use > 0)
             {
                 // 把扣的钱丢进管理员账户
@@ -509,11 +493,11 @@ namespace DApp
                 _param[1] = centralAccount; //to; //to
                 _param[2] = use.ToByteArray();//value
 
-                object[] id = new object[1];
-                id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
+                //object[] id = new object[1];
+                //id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
 
-                cgasCall("transfer", _param);
-                onAssetManagement(auctionID, centralAccount, use);
+                if((bool)cgasCall("transfer", _param))
+                    onBidSettlement(auctionID, centralAccount, use);
             }
 
             return true;
@@ -522,6 +506,8 @@ namespace DApp
         }
         public static bool collectDomain(byte[] who, byte[] auctionID)
         {
+            if (who.Length != 20)
+                return false;
             var selling = getAuctionStateByAuctionID(auctionID);
             var fullhash = nameHashSub(selling.parenthash, selling.domain);
             var info = getOwnerInfo(fullhash);
@@ -556,6 +542,8 @@ namespace DApp
         }
         public static bool renewDomain(byte[] who, byte[] parenthash, string domain)
         {
+            if (Runtime.CheckWitness(who) == false)
+                return false;
             byte[] fullhash = nameHashSub(parenthash, domain);
             var info = getOwnerInfo(fullhash);
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
@@ -563,7 +551,7 @@ namespace DApp
                 return false;
             if (info.TTL < nowtime)
                 return false;
-            if ((info.TTL-nowtime) < secondmonth)//90天内 可以续约
+            if ((info.TTL-nowtime) < secondThreemonth)//90天内 可以续约
             {
                 object[] obj = new object[4];
                 obj[0] = parenthash;
@@ -636,6 +624,7 @@ namespace DApp
                 var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
                 money += tx.value;
                 Storage.Put(Storage.CurrentContext, key, money);
+                onSetMoneyIn(tx.from, tx.value, txid);
                 //記錄這個txid處理過了,只處理一次
                 Storage.Put(Storage.CurrentContext, keytx, 1);
                 return true;
@@ -651,6 +640,13 @@ namespace DApp
         /// <returns></returns>
         public static bool getMoneyBack(byte[] who, BigInteger count)
         {
+            if (!Runtime.CheckWitness(who) && !Runtime.CheckWitness(superAdmin))
+                return false;
+            //多判断总比少判断好
+            if (count <= 0)
+                return false;
+            if (who.Length != 20)
+                return false;
             var key = new byte[] { 0x11 }.Concat(who);
             var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
             if (money < count)
@@ -667,6 +663,7 @@ namespace DApp
             {
                 money -= count;
                 Storage.Put(Storage.CurrentContext, key, money);
+                onGetMoneyBack(who,count);
                 return true;
             }
 
@@ -717,8 +714,6 @@ namespace DApp
                 if (method == "startAuction")//申請开始拍卖 (00,02,20)=>(10) //openbid
                 {
                     byte[] who = (byte[])args[0];
-                    if (Runtime.CheckWitness(who) == false)
-                        return false;
                     byte[] nnshash = (byte[])args[1];
                     string domain = (string)args[2];
                     return startAuction(who, nnshash, domain);
@@ -726,11 +721,10 @@ namespace DApp
                 if (method == "raise")//出價&加價 (10,11,12)=>不改變狀態  //raise
                 {
                     byte[] who = (byte[])args[0];
-                    if (Runtime.CheckWitness(who) == false)
-                        return false;
 
                     byte[] auctionID = (byte[])args[1];
                     BigInteger myprice = (BigInteger)args[2];
+
                     //如果有就充值到我的戶頭
                     //如果戶頭的錢夠扣,就參與投標
                     return raise(who, auctionID, myprice);
@@ -744,8 +738,8 @@ namespace DApp
                 if (method == "bidSettlement")// 限制狀態20 bidSettlement
                 {
                     byte[] who = (byte[])args[0];
-                    if (Runtime.CheckWitness(who) == false)
-                        return false;
+                    //if (Runtime.CheckWitness(who) == false)
+                    //    return false;
 
                     byte[] auctionID = (byte[])args[1];//拍賣id
                                                   //結束拍賣就會把我存進去的拍賣金退回90%（我沒中標）
@@ -755,8 +749,8 @@ namespace DApp
                 if (method == "collectDomain")//拿走我拍到的域名  collectdomain
                 {
                     byte[] who = (byte[])args[0];
-                    if (Runtime.CheckWitness(who) == false)
-                        return false;
+                    //if (Runtime.CheckWitness(who) == false)
+                    //    return false;
                     byte[] auctionID = (byte[])args[1];//拍賣id
 
                     return collectDomain(who, auctionID);
@@ -764,8 +758,7 @@ namespace DApp
                 if (method == "renewDomain")//续约域名
                 {
                     byte[] who = (byte[])args[0];
-                    if (Runtime.CheckWitness(who) == false)
-                        return false;
+
                     byte[] nnshash = (byte[])args[1];
                     string domain = (string)args[2];
                     return renewDomain(who, nnshash, domain);
@@ -780,6 +773,7 @@ namespace DApp
                 {
                     byte[] who = (byte[])args[0];
                     BigInteger myprice = (BigInteger)args[1];
+
                     return getMoneyBack(who, myprice);
                 }
                 if (method == "setmoneyin")//如果用普通方式轉了nep5進來,也不要緊
