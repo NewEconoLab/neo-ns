@@ -11,7 +11,7 @@ namespace nns_credit
     public class nns_credit : SmartContract
     {
         //魔法数字
-        string magic = "20181025";
+        string magic = "20181026";
 
         //域名中心（跳板）
         [Appcall("348387116c4a75e420663277d9c02049907128c7")]
@@ -80,7 +80,9 @@ namespace nns_credit
                 if ((ownerInfo.owner == addr) && (lastBlockTime <= ownerInfo.TTL))
                 {
                     NNScredit creditData = new NNScredit();
+
                     creditData.namehash = namehash;
+
                     //根域名
                     string fullDomainStr = domainArray[0];
                     //其它逐级拼接
@@ -89,7 +91,9 @@ namespace nns_credit
                         fullDomainStr = string.Concat(domainArray[i], string.Concat(".", fullDomainStr));
                     }
                     creditData.fullDomainName = fullDomainStr;
+
                     creditData.TTL = ownerInfo.TTL;
+
                     //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
                     //存储
@@ -99,15 +103,9 @@ namespace nns_credit
 
                     return new byte[] { 1 };
                 }
-                else
-                {
-                    return new byte[] { 0 };
-                }
             }
-            else
-            {
-                return new byte[] { 0 };
-            }          
+
+            return new byte[] { 0 };         
         }
 
         static byte[] revoke(byte[] addr)
@@ -120,27 +118,17 @@ namespace nns_credit
 
             byte[] creditData = addrCreditMap.Get(addr);
 
-            //如果数据不存在 形同成功删除
+            //不能对没有注册过的删除
             if (creditData.Length == 0)
-                return new byte[] { 1 };
+                return new byte[] { 0 };
 
-            //到了这里肯定有数据，那就删除加抛出通知
+            //有数据就删除并通知
             //操作注销
             addrCreditMap.Delete(addr);
             //通知注销
             onAddrCreditRevoke(addr);
 
-            return new byte[] { 1 };
-
-            //判断是否有数据,有数据才执行
-            //if (nnsCredit.namehash.Length > 0)
-            //{
-            //
-            //}
-            //else
-            //{
-            //    return new byte[] { 0 };
-            //}       
+            return new byte[] { 1 };      
         }
 
         static NNScredit getCreditInfo(byte[] addr) {
@@ -153,55 +141,44 @@ namespace nns_credit
 
             NNScredit nnsCredit = new NNScredit();
 
-            //如果存储区没有这个地址
+            //如果存储区没有这个地址的数据，返回空类
             if (creditData.Length == 0)
             {
-                nnsCredit.namehash = new byte[0];
-                nnsCredit.fullDomainName = "";
-                nnsCredit.TTL = 0;
-                return nnsCredit;
+                //nnsCredit.namehash = new byte[0];
+                //nnsCredit.fullDomainName = "";
+                //nnsCredit.TTL = 0;
+                return new NNScredit();
             }
 
-            //读取并反序列化为类
+            //有数据继续操作
+            //读取并反序列化为类,反序列化前必须先验证是否为null
             nnsCredit = (NNScredit)creditData.Deserialize();
-            //判断是否有数据
-            if (nnsCredit.namehash.Length > 0)//这个判断可能有点多余
+
+            //获取域名信息
+            OwnerInfo ownerInfo = getOwnerInfo(nnsCredit.namehash);
+
+            //获取最新块时间
+            var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
+
+            //如果NNS所有者变了，或者NNS过期了则不返回数据（即使有）
+            if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL))
             {
-                //获取域名信息
-                byte[] creditNamehash = nnsCredit.namehash;
-                OwnerInfo ownerInfo = getOwnerInfo(creditNamehash);
-                //获取最新块时间
-                var lastBlockTime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
 
-                //如果NNS所有者变了，或者NNS过期了则不返回数据（即使有）
-                if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL))
-                {
+                //为了能够不用发送交易也能正常运行，这里不能做删除操作（修改性操作）
+                ////操作注销
+                //addrCreditMap.Delete(addr);
+                ////通知注销
+                //onAddrCreditRevoke(addr);
 
-                    //为了能够不用发送交易也能正常运行，这里不能做删除操作（修改性操作）
-                    ////操作注销
-                    //addrCreditMap.Delete(addr);
-                    ////通知注销
-                    //onAddrCreditRevoke(addr);
-
-                    //返回空类
-                    nnsCredit.namehash = new byte[0];
-                    nnsCredit.fullDomainName = "";
-                    nnsCredit.TTL = 0;
-                    return nnsCredit;
-                }
-                else
-                {
-                    return nnsCredit;
-                }
+                //返回空类
+                //nnsCredit.namehash = new byte[0];
+                //nnsCredit.fullDomainName = "";
+                //nnsCredit.TTL = 0;
+                return new NNScredit();
             }
-            else
-            {
-                //没数据返回空类
-                nnsCredit.namehash = new byte[0];
-                nnsCredit.fullDomainName = "";
-                nnsCredit.TTL = 0;
-                return nnsCredit;
-            }
+
+            return nnsCredit;
+         
             
             ////判断addr是否做过NNS登记
             //if (creditData.namehash.Length > 0)
@@ -228,7 +205,6 @@ namespace nns_credit
                 return authenticate((byte[])args[0], (string[])args[1]);
             if (method == "revoke")
                 return revoke((byte[])args[0]);
-
             if (method == "getCreditInfo")
                 return getCreditInfo((byte[])args[0]);
 
