@@ -181,7 +181,11 @@ namespace DApp
             var data = Storage.Get(Storage.CurrentContext, new byte[] { 0x02 }.Concat(auctionID));
 
             if (data.Length <= 0)
-                return new AuctionState();
+            {
+                var auctionState = new AuctionState();
+                auctionState.startBlockSelling = 0;
+                return auctionState;
+            }
 
             return Helper.Deserialize(data) as AuctionState;
         }
@@ -343,6 +347,8 @@ namespace DApp
             }
             else //随机期怎么办,有可能这里就直接被结束了
             {
+                if (IsAuctionEnd(selling, starttime,nowtime, who))
+                    return false;
                 //没结束,验证加价的金额有没有超过最高出价的10% 因为最小出价是0.1 所以小于2的最高价就不限制了
                 if (selling.maxPrice >= 200000000 && (value/10000000) < (selling.maxPrice / 100000000))
                     return false;
