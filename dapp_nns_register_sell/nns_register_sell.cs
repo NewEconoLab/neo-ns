@@ -220,15 +220,16 @@ namespace DApp
 
         public static bool startAuction(byte[] who,byte[] hash, string domainname)
         {
-            if (Runtime.CheckWitness(who) == false)
+            if (!Runtime.CheckWitness(who))
                 return false;
             //判断域名的合法性
             //域名的有效性  只能是a~z 0~9 2~32长
             if (domainname.Length < 2 || domainname.Length > 32)
                 return false;
-            foreach (var c in domainname)
+
+            foreach (var item in domainname)
             {
-                if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')))
+                if (!((item >= 'a' && item <= 'z') || (item >= '0' && item <= '9')))
                 {
                     return false;
                 }
@@ -242,18 +243,19 @@ namespace DApp
             //再看看域名能不能拍卖
             var fullhash = nameHashSub(hash, domainname);
             var info = getOwnerInfo(fullhash);
-            var inuse = getDomainUseState(info);
-            if (inuse == DomainUseState.InUse)
+
+            if (getDomainUseState(info) == DomainUseState.InUse)
             {
                 return false;
             }
+
             //再看看有没有在拍卖
             var selling = getAuctionStateByFullhash(fullhash);
             var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             if (selling.startBlockSelling > 0)//已经在拍卖中了
             {
-                if (IsAuctionEnd(selling, starttime, nowtime) == false)//拍卖未结束不准
+                if (!IsAuctionEnd(selling, starttime, nowtime))//拍卖未结束不准
                     return false;
 
                 if (selling.maxBuyer.Length > 0)//未流拍的拍卖,一年内不得再拍
@@ -299,12 +301,11 @@ namespace DApp
         /// <returns>加价成功？</returns>
         public static bool raise(byte[] who, byte[] auctionID, BigInteger value)
         {
-            if (Runtime.CheckWitness(who) == false)
+            if (!Runtime.CheckWitness(who))
                 return false;
-            if (value <= 0)
-                return false;
+
             //合约限制最小加价为0.1 并且小数点后面不能超过一位
-            if (value < 10000000 || value % 10000000 > 0)
+            if (value <= 0 || value < 10000000 || value % 10000000 > 0)
                 return false;
 
             var money = balanceOf(who);
@@ -328,30 +329,27 @@ namespace DApp
             var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             moneyfordomain += value;
+            
             if (moneyfordomain > selling.maxPrice)
             {
                 // 高于最高出价了,判断最高出价人有没有变动
                 isMaxBuyerChange = selling.maxBuyer != who;
             }
+            //太久了,不能出价 or 拍卖已经结束,不能出价
+            if (nowtime >= endtime || selling.endBlock > 0)
+            {
+                return false;
+            }
 
-            if (nowtime >= endtime)//太久了,不能出价
-            {
-                return false;
-            }
-            if (selling.endBlock > 0)//拍卖已经结束,不能出价
-            {
-                return false;
-            }
-            if (nowtime < steprantime)//随机期以前,随便出价
-            {
-            }
-            else //随机期怎么办,有可能这里就直接被结束了
+            if (nowtime >= steprantime)//随机期怎么办,有可能这里就直接被结束了
             {
                 if (IsAuctionEnd(selling, starttime,nowtime))
                     return false;
+
                 //没结束,验证加价的金额有没有超过最高出价的10% 因为最小出价是0.1 所以小于2的最高价就不限制了
                 if (selling.maxPrice >= 200000000 && (value/10000000) < (selling.maxPrice / 100000000))
                     return false;
+
                 //如果最高出价人变化了，触发随机结束的逻辑
                 if (isMaxBuyerChange)
                 {
@@ -449,6 +447,7 @@ namespace DApp
         {
             if (who.Length != 20)
                 return false;
+                 
             var selling = getAuctionStateByAuctionID(auctionID);
 
             //如果startBlockSelling 为0  连开拍没都没开拍  就不要继续往下走了
@@ -458,9 +457,8 @@ namespace DApp
 
             var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            bool b = IsAuctionEnd(selling, starttime, nowtime);
-
-            if (b == false)
+    
+            if (!IsAuctionEnd(selling, starttime, nowtime))
                 return false;
 
             BigInteger use = 0;
@@ -468,24 +466,23 @@ namespace DApp
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
             if (moneyfordomain == 0)
                 return false;
+
             Storage.Delete(Storage.CurrentContext, pricekey);
 
-
-            if (selling.auctionStarter.AsBigInteger() == who.AsBigInteger() && selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
-            {//域名开拍者全退
-                var money = balanceOf(who);
-                use = 0;
-                money += moneyfordomain;
-                var key = new byte[] { 0x11 }.Concat(who);
-                Storage.Put(Storage.CurrentContext, key, money);
-            }
-            else if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
+            if (selling.maxBuyer.AsBigInteger() != who.AsBigInteger())
             {
                 var money = balanceOf(who);
+                //域名开拍者全退
+                if(selling.auctionStarter.AsBigInteger() == who.AsBigInteger()){
 
-                use = moneyfordomain / 10;
-
-                money += (moneyfordomain - use);//退9折
+                     money += moneyfordomain;
+                }
+                else
+                {
+                    use = moneyfordomain / 10;
+                    money += (moneyfordomain - use);//退9折
+                }
+             
                 var key = new byte[] { 0x11 }.Concat(who);
                 Storage.Put(Storage.CurrentContext, key, money);
             }
@@ -513,6 +510,7 @@ namespace DApp
         {
             if (who.Length != 20)
                 return false;
+
             var selling = getAuctionStateByAuctionID(auctionID);
             var fullhash = nameHashSub(selling.parenthash, selling.domain);
             var info = getOwnerInfo(fullhash);
@@ -525,6 +523,7 @@ namespace DApp
                 {
                     return false;
                 }
+
                 var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
 
                 if (Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp > starttime + secondyear)
@@ -550,15 +549,16 @@ namespace DApp
         }
         public static bool renewDomain(byte[] who, byte[] parenthash, string domain)
         {
-            if (Runtime.CheckWitness(who) == false)
+            if (!Runtime.CheckWitness(who))
                 return false;
+
             byte[] fullhash = nameHashSub(parenthash, domain);
             var info = getOwnerInfo(fullhash);
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            if (info.owner.AsBigInteger() != who.AsBigInteger())
+
+            if (info.owner.AsBigInteger() != who.AsBigInteger() || info.TTL < nowtime)
                 return false;
-            if (info.TTL < nowtime)
-                return false;
+
             if ((info.TTL-nowtime) < secondThreemonth)//90天内 可以续约
             {
                 object[] obj = new object[4];
@@ -585,8 +585,8 @@ namespace DApp
         static TransferInfo getTxIn(byte[] txid)
         {
             var keytx = new byte[] { 0x12 }.Concat(txid);
-            var v = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
-            if (v == 0)//如果這個交易已經處理過,就當get不到
+
+            if (Storage.Get(Storage.CurrentContext, keytx).AsBigInteger() == 0)//如果這個交易已經處理過,就當get不到
             {
                 object[] _p = new object[1];
                 _p[0] = txid;
@@ -618,15 +618,15 @@ namespace DApp
         public static bool setMoneyIn(byte[] txid)
         {
             var tx = getTxIn(txid);
-            if (tx.from.Length == 0)
+
+            if (tx.from.Length == 0 || tx.value <= 0)
                 return false;
-            if (tx.value <= 0)
-                return false;
+   
             if (tx.to.AsBigInteger() == ExecutionEngine.ExecutingScriptHash.AsBigInteger())
             {
                 var keytx = new byte[] { 0x12 }.Concat(txid);
-                var n = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
-                if (n == 1)//这笔txid已经被用掉了
+                var isUsed = Storage.Get(Storage.CurrentContext, keytx).AsBigInteger();
+                if (isUsed == 1)//这笔txid已经被用掉了
                     return false;
                 //存錢
                 var key = new byte[] { 0x11 }.Concat(tx.from);
@@ -652,12 +652,12 @@ namespace DApp
             if (!Runtime.CheckWitness(who) && !Runtime.CheckWitness(superAdmin))
                 return false;
             //多判断总比少判断好
-            if (count <= 0)
+            if (count <= 0 || who.Length != 20)
                 return false;
-            if (who.Length != 20)
-                return false;
+
             var key = new byte[] { 0x11 }.Concat(who);
             var money = Storage.Get(Storage.CurrentContext, key).AsBigInteger();
+
             if (money < count)
                 return false;
 
@@ -667,8 +667,7 @@ namespace DApp
             trans[1] = who;
             trans[2] = count;
 
-            bool succ = (bool)cgasCall("transfer", trans);
-            if (succ)
+            if ((bool)cgasCall("transfer", trans))
             {
                 money -= count;
                 Storage.Put(Storage.CurrentContext, key, money);
