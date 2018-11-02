@@ -52,10 +52,10 @@ namespace DApp
         public static event deleRaiseEndsAuction onRaiseEndsAuction;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
-        //const int secondday = 5 * 60;//加速版,300秒当一天
+        const int secondday = 5 * 60;//加速版,300秒当一天
 
         //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
-        const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
+        //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
         const int secondThreemonth = secondday * 30 * 3;//90天可以续约
                                                    //starttime + secondday*2  为拍卖阶段1
@@ -334,7 +334,7 @@ namespace DApp
                 isMaxBuyerChange = selling.maxBuyer != who;
             }
 
-            if (nowtime > endtime)//太久了,不能出价
+            if (nowtime >= endtime)//太久了,不能出价
             {
                 return false;
             }
@@ -347,7 +347,7 @@ namespace DApp
             }
             else //随机期怎么办,有可能这里就直接被结束了
             {
-                if (IsAuctionEnd(selling, starttime,nowtime, who))
+                if (IsAuctionEnd(selling, starttime,nowtime))
                     return false;
                 //没结束,验证加价的金额有没有超过最高出价的10% 因为最小出价是0.1 所以小于2的最高价就不限制了
                 if (selling.maxPrice >= 200000000 && (value/10000000) < (selling.maxPrice / 100000000))
@@ -381,7 +381,7 @@ namespace DApp
         }
 
 
-        public static bool RandomEnd(AuctionState state, uint starttime, byte[] who = null)
+        public static bool RandomEnd(AuctionState state, uint starttime, byte[] who)
         {
 
             var step2time = starttime + secondday * 2;
@@ -403,16 +403,13 @@ namespace DApp
         }
 
         //判断域名拍卖有没有结束
-        private static bool IsAuctionEnd(AuctionState state, uint starttime,uint nowtime, byte[] who = null)
+        private static bool IsAuctionEnd(AuctionState state, uint starttime,uint nowtime)
         {
-            if (state.startBlockSelling == 0)//就没开始过
-                return false;
+            //if (state.startBlockSelling == 0)//就没开始过
+            //    return false;
             if (state.endBlock > 0)//已经结束了
                 return true;
 
-
-            //var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            //var starttime = Blockchain.GetHeader((uint)state.startBlockSelling).Timestamp;
             var step2time = starttime + secondday * 2;
             var steprantime = starttime + secondday * 3;
             var endtime = starttime + secondday * 5;
@@ -420,7 +417,7 @@ namespace DApp
             if (nowtime < steprantime)//随机期都没到,肯定没结束
                 return false;
 
-            if (nowtime > endtime)//毫无悬念结束了
+            if (nowtime >= endtime)//毫无悬念结束了
             {
                 state.endBlock = Blockchain.GetHeight();
                 saveAuctionState(state);
@@ -453,6 +450,12 @@ namespace DApp
             if (who.Length != 20)
                 return false;
             var selling = getAuctionStateByAuctionID(auctionID);
+
+            //如果startBlockSelling 为0  连开拍没都没开拍  就不要继续往下走了
+            if (selling.startBlockSelling <= 0)
+                return false;
+
+
             var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
             bool b = IsAuctionEnd(selling, starttime, nowtime);
@@ -472,7 +475,7 @@ namespace DApp
             {//域名开拍者全退
                 var money = balanceOf(who);
                 use = 0;
-                money += (moneyfordomain - use);
+                money += moneyfordomain;
                 var key = new byte[] { 0x11 }.Concat(who);
                 Storage.Put(Storage.CurrentContext, key, money);
             }
@@ -498,10 +501,6 @@ namespace DApp
                 _param[0] = ExecutionEngine.ExecutingScriptHash; //from 
                 _param[1] = centralAccount; //to; //to
                 _param[2] = use.ToByteArray();//value
-
-                //object[] id = new object[1];
-                //id[0] = (ExecutionEngine.ScriptContainer as Transaction).Hash;
-
                 if((bool)cgasCall("transfer", _param))
                     onBidSettlement(auctionID, centralAccount, use);
             }
@@ -526,6 +525,10 @@ namespace DApp
                 {
                     return false;
                 }
+                var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
+
+                if (Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp > starttime + secondyear)
+                    return false;
 
                 if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化,所以可以用ttl比较
                 {//域名我可以拿走了
@@ -533,7 +536,6 @@ namespace DApp
                     obj[0] = selling.parenthash;
                     obj[1] = selling.domain;
                     obj[2] = who;
-                    var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
                     obj[3] = starttime + secondyear;
                     var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
                     if (r.AsBigInteger() == 1)
@@ -618,7 +620,8 @@ namespace DApp
             var tx = getTxIn(txid);
             if (tx.from.Length == 0)
                 return false;
-
+            if (tx.value <= 0)
+                return false;
             if (tx.to.AsBigInteger() == ExecutionEngine.ExecutingScriptHash.AsBigInteger())
             {
                 var keytx = new byte[] { 0x12 }.Concat(txid);
@@ -789,7 +792,7 @@ namespace DApp
                 }
                 #endregion
             }
-            return new byte[] { 0 };
+            return false;
         }
     }
 
