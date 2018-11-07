@@ -464,7 +464,7 @@ namespace DApp
             BigInteger use = 0;
             var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
             var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-            if (moneyfordomain == 0)
+            if (moneyfordomain <= 0)
                 return false;
 
             Storage.Delete(Storage.CurrentContext, pricekey);
@@ -519,14 +519,14 @@ namespace DApp
                 //还要判断 
                 var pricekey = new byte[] { 0x21 }.Concat(auctionID).Concat(who);
                 var moneyfordomain = Storage.Get(Storage.CurrentContext, pricekey).AsBigInteger();
-                if (moneyfordomain > 0)//没有endselling 付钱呢
+                if (moneyfordomain != 0)//没有endselling 付钱呢
                 {
                     return false;
                 }
 
                 var starttime = Blockchain.GetHeader((uint)selling.startBlockSelling).Timestamp;
 
-                if (Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp > starttime + secondyear)
+                if (Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp >= starttime + secondyear)
                     return false;
 
                 if (selling.domainTTL == info.TTL)//只要拿过这个数据会变化,所以可以用ttl比较
@@ -556,7 +556,7 @@ namespace DApp
             var info = getOwnerInfo(fullhash);
             var nowtime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
 
-            if (info.owner.AsBigInteger() != who.AsBigInteger() || info.TTL < nowtime)
+            if (info.owner.AsBigInteger() != who.AsBigInteger() || nowtime >= info.TTL)
                 return false;
 
             if ((info.TTL-nowtime) < secondThreemonth)//90天内 可以续约
