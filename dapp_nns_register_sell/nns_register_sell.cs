@@ -52,10 +52,10 @@ namespace DApp
         public static event deleRaiseEndsAuction onRaiseEndsAuction;
 
         //粗略一天的秒数,为了测试需要,缩短时间为五分钟=一天,五分钟结束
-        const int secondday = 5 * 60;//加速版,300秒当一天
+        //const int secondday = 5 * 60;//加速版,300秒当一天
 
         //const int blockhour = 240;///一个小时约等于的块数,随机结束间隔,每240块检查一次
-        //const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
+        const int secondday = 3600 * 24;///一天是多少秒,用来判断拍卖进程用
         const int secondyear = secondday * 365;//一租域名是365天
         const int secondThreemonth = secondday * 30 * 3;//90天可以续约
                                                    //starttime + secondday*2  为拍卖阶段1
