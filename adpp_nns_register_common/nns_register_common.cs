@@ -32,19 +32,22 @@ namespace adpp_nns_register_common
             return info;
         }
 
-        public static bool SetDomain(byte[] who,byte[] hash,string domainname)
+        public static bool SetDomain(byte[] who,byte[] hash,string domainname,BigInteger ttl)
         {
             //从域名中心获取根域名的信息
             var ownerinfo = getOwnerInfo(hash);
             //检查根域名的所有者和注册器
             if (!Runtime.CheckWitness(ownerinfo.owner) || ownerinfo.register.AsBigInteger()!= ExecutionEngine.ExecutingScriptHash.AsBigInteger())
                 return false;
+            //子域名的ttl怎么也不能大于父域名的吧
+            if (ttl > ownerinfo.TTL)
+                return false;
             object[] obj = new object[4];
             obj[0] = hash;
             obj[1] = domainname;
             obj[2] = who;
             var starttime = Blockchain.GetHeader(Blockchain.GetHeight()).Timestamp;
-            obj[3] = ownerinfo.TTL; //到期时间怎们也不能比根域名到期时间长吧
+            obj[3] = ownerinfo.TTL; 
             var r = (byte[])rootCall("register_SetSubdomainOwner", obj);
             return true;
         }
@@ -68,8 +71,10 @@ namespace adpp_nns_register_common
                     byte[] who = (byte[])args[0];
                     byte[] hash = (byte[])args[1];
                     string domain = (string)args[2];
-                    SetDomain(who,hash,domain);
+                    BigInteger ttl = (BigInteger)args[3];
+                    SetDomain(who,hash,domain,ttl);
                 }
+
             }
             else if (Runtime.Trigger == TriggerType.ApplicationR)
             {
