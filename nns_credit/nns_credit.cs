@@ -10,9 +10,6 @@ namespace nns_credit
 {
     public class nns_credit : SmartContract
     {
-        //魔法数字
-        string magic = "20181026";
-
         //域名中心（跳板）
         [Appcall("348387116c4a75e420663277d9c02049907128c7")]
         static extern object rootCall(string method, object[] arr);
@@ -162,6 +159,8 @@ namespace nns_credit
 
         public static object Main(string method, object[] args)
         {
+            string magicStr = "20190408";
+
             if (method == "authenticate")
                 return authenticate((byte[])args[0], (string[])args[1]);
             if (method == "revoke")
