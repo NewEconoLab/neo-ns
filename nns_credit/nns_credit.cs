@@ -33,7 +33,6 @@ namespace nns_credit
             public byte[] namehash;
             public string fullDomainName;
             public BigInteger TTL;
-            //public byte[] witness;
         }
 
         //域名中心的所有者信息结构
@@ -64,9 +63,6 @@ namespace nns_credit
             //使用StorageMap，推荐的存储区使用方式
             StorageMap addrCreditMap = Storage.CurrentContext.CreateMap("addrCreditMap");
 
-            //使用域名中心计算namehash
-            //byte[] roothash = rootCall("nameHash", new object[] { rootDomain }) as byte[];
-            //byte[] namehash = rootCall("nameHashSub", new object[] { roothash,subDomain }) as byte[];
             byte[] namehash = rootCall("nameHashArray", new object[] { domainArray }) as byte[];
 
             //使用域名中心获取域名信息
@@ -93,8 +89,6 @@ namespace nns_credit
                     creditData.fullDomainName = fullDomainStr;
 
                     creditData.TTL = ownerInfo.TTL;
-
-                    //creditData.witness = "77e193f1af44a61ed3613e6e3442a0fc809bb4b8".AsByteArray();
 
                     //存储
                     addrCreditMap.Put(addr, creditData.Serialize());
@@ -144,9 +138,6 @@ namespace nns_credit
             //如果存储区没有这个地址的数据，返回空类
             if (creditData.Length == 0)
             {
-                //nnsCredit.namehash = new byte[0];
-                //nnsCredit.fullDomainName = "";
-                //nnsCredit.TTL = 0;
                 return new NNScredit();
             }
 
@@ -163,40 +154,10 @@ namespace nns_credit
             //如果NNS所有者变了，或者NNS过期了则不返回数据（即使有）
             if ((ownerInfo.owner != addr) || (lastBlockTime > ownerInfo.TTL))
             {
-
-                //为了能够不用发送交易也能正常运行，这里不能做删除操作（修改性操作）
-                ////操作注销
-                //addrCreditMap.Delete(addr);
-                ////通知注销
-                //onAddrCreditRevoke(addr);
-
-                //返回空类
-                //nnsCredit.namehash = new byte[0];
-                //nnsCredit.fullDomainName = "";
-                //nnsCredit.TTL = 0;
                 return new NNScredit();
             }
 
             return nnsCredit;
-         
-            
-            ////判断addr是否做过NNS登记
-            //if (creditData.namehash.Length > 0)
-            //{
-            //    ////默认返回完整域名名称
-            //    //if (flag == new byte[] { 0 })
-            //    //    return creditData.fullDomainName.AsByteArray();
-            //    //else if (flag == new byte[] { 1 })
-            //    //    return creditData.namehash;
-            //    //else if (flag == new byte[] { 2 })
-            //    //    return creditData.TTL.AsByteArray();
-            //    //else
-            //    return creditData;
-            //}
-            //else
-            //{
-            //    return new NNScredit();
-            //}
         }
 
         public static object Main(string method, object[] args)
